@@ -1,0 +1,16 @@
+[build]
+  command = "npm run build"
+  destination = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[pages.redirects]]
+  from = "/api/*"
+  to = "/api/:splat"
+  status = 200
+
+[[pages.redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
