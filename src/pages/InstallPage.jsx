@@ -6,8 +6,6 @@ const card = {
   borderRadius: 12, padding: '20px 24px', marginBottom: 12
 }
 
-const PROFILE_ID_PLACEHOLDER = '__PROFILE_ID__'
-
 function Step({ n, children }) {
   return (
     <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
@@ -25,7 +23,6 @@ export default function InstallPage() {
   const { profileId } = useParams()
   const [platform, setPlatform] = useState('iphone')
 
-  const dohUrl = `https://dns.nextdns.io/${profileId}`
   const dotHost = `${profileId}.dns.nextdns.io`
   const configUrl = `https://api.nextdns.io/profiles/${profileId}/apple-configuration-profile`
 
@@ -77,9 +74,9 @@ export default function InstallPage() {
           <Step n="3">Safari will show a popup saying <strong>"Profile Downloaded"</strong> — tap <strong>Close</strong></Step>
           <Step n="4">Open the <strong>Settings app</strong> on the device</Step>
           <Step n="5">Tap <strong>General → VPN & Device Management</strong></Step>
-          <Step n="6">Tap <strong>NextDNS</strong> (or the profile name) and tap <strong>Install</strong></Step>
+          <Step n="6">Tap the <strong>Guardly profile</strong> and tap <strong>Install</strong></Step>
           <Step n="7">Enter the device passcode when prompted and tap <strong>Install</strong> again</Step>
-          <Step n="8">Done! The device is now protected. All filtering rules from this profile apply immediately.</Step>
+          <Step n="8">Done! The device is now protected. All filtering rules apply immediately.</Step>
         </div>
       )}
 
@@ -96,7 +93,7 @@ export default function InstallPage() {
           <Step n="2">The profile file will download — open it when prompted</Step>
           <Step n="3">macOS will say <strong>"Profile Downloaded"</strong> in a notification</Step>
           <Step n="4">Open <strong>System Settings → Privacy & Security → Profiles</strong></Step>
-          <Step n="5">Click the <strong>NextDNS profile</strong> and click <strong>Install</strong></Step>
+          <Step n="5">Click the <strong>Guardly profile</strong> and click <strong>Install</strong></Step>
           <Step n="6">Enter <strong>your admin password</strong> (your password, not the child's) to approve</Step>
           <Step n="7">Done! The profile is locked — the child cannot remove it without your password.</Step>
           <div style={{
@@ -131,7 +128,7 @@ export default function InstallPage() {
             borderRadius: 8, fontSize: 12, color: '#854F0B'
           }}>
             ⚠️ Android's Private DNS can be disabled in Settings. For stronger protection,
-            use a parental control app like Google Family Link to prevent Settings changes.
+            use Google Family Link to prevent Settings changes.
           </div>
         </div>
       )}
@@ -154,15 +151,12 @@ export default function InstallPage() {
             }}>{dotHost}</code>
           </Step>
           <Step n="4">
-            Or use plain DNS servers (less secure but more compatible):<br />
+            Or use plain DNS servers:<br />
             <code style={{
               display: 'inline-block', marginTop: 6, padding: '6px 12px',
               background: '#F7F7F5', borderRadius: 6, fontSize: 12,
               border: '0.5px solid #E4E4E0'
-            }}>45.90.28.40 / 45.90.30.40</code><br />
-            <span style={{ fontSize: 11, color: '#9B9B97', marginTop: 4, display: 'block' }}>
-              Then link your IP in the NextDNS dashboard so it knows which profile to use.
-            </span>
+            }}>45.90.28.40 / 45.90.30.40</code>
           </Step>
           <Step n="5">Save settings and restart the router if prompted</Step>
         </div>
