@@ -39,10 +39,11 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
-  const signUp = async (email, password, name) => {
+  const signUp = async (email, password, firstName, lastName) => {
     if (!isSupabaseConfigured()) throw new Error('Auth not configured yet')
+    const full = [firstName, lastName].filter(Boolean).join(' ').trim()
     const { data, error } = await supabase.auth.signUp({
-      email, password, options: { data: { full_name: name } }
+      email, password, options: { data: { full_name: full, first_name: firstName || '', last_name: lastName || '' } }
     })
     if (error) throw error
     const needsConfirmation = !!data.user && !data.session

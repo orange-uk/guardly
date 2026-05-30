@@ -301,3 +301,14 @@ Delete these stale files from GitHub if still present:
 ### One-time cleanup already done via SQL
 Consolidated to a single household keyed on the real one; deleted duplicate/empty/
 orphaned households. No further SQL needed unless duplicates reappear (they shouldn't).
+
+## UX batch (added to this package)
+- **First & last name at signup**: the signup form now has separate First name and
+  Last name fields, stored as full_name + first_name + last_name in user metadata.
+- **Dashboard greeting**: shows "Hi <FirstName> 👋" above Your family. Falls back to the
+  first word of full_name for accounts created before this change.
+- **Supported-device logos**: the landing page hero now shows brand glyphs for
+  Apple, Android, Chromebook and Windows under "Protects every device your child uses".
+
+No new SQL or env vars for this batch. (Existing accounts: optionally run the
+first_name/last_name metadata update — already done for the main account.)

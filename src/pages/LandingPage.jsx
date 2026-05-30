@@ -83,13 +83,43 @@ function HeroArt() {
 const FONT_D = "'Fraunces', Georgia, serif"
 const FONT_B = "'Plus Jakarta Sans', sans-serif"
 
+/* Supported-platform brand glyphs (inline SVG, monochrome, on-brand) */
+function DeviceLogos() {
+  const c = '#5B655F'
+  const logos = [
+    ['Apple', (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill={c}><path d="M17.05 12.54c-.02-2.05 1.68-3.04 1.75-3.09-.95-1.4-2.44-1.59-2.97-1.61-1.27-.13-2.47.74-3.11.74-.64 0-1.63-.72-2.68-.7-1.38.02-2.65.8-3.36 2.04-1.43 2.49-.37 6.17 1.03 8.19.68.99 1.5 2.1 2.57 2.06 1.03-.04 1.42-.67 2.67-.67 1.24 0 1.6.67 2.69.65 1.11-.02 1.81-1.01 2.49-2 .78-1.15 1.11-2.26 1.13-2.32-.02-.01-2.17-.83-2.2-3.29zM15.01 6.5c.57-.69.95-1.65.85-2.6-.82.03-1.81.54-2.39 1.23-.52.61-.98 1.58-.86 2.51.91.07 1.84-.46 2.4-1.14z"/></svg>
+    )],
+    ['Android', (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill={c}><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-1.43-.65-3.03-1.01-4.71-1.01s-3.28.36-4.71 1.01L5.17 5.67c-.18-.28-.54-.37-.83-.22-.3.16-.42.54-.26.85L5.92 9.48C2.92 11.07.96 14.05.5 17.5h23c-.46-3.45-2.42-6.43-5.4-8.02zM7 15.25a1 1 0 110-2 1 1 0 010 2zm10 0a1 1 0 110-2 1 1 0 010 2z"/></svg>
+    )],
+    ['Chromebook', (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" stroke={c} strokeWidth="1.8"/><circle cx="12" cy="12" r="3.4" stroke={c} strokeWidth="1.8"/><path d="M12 8.6h8.4M8.9 13.7l-4 7M15.1 13.7l-4 7" stroke={c} strokeWidth="1.8" strokeLinecap="round"/></svg>
+    )],
+    ['Windows', (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill={c}><path d="M3 5.7l7.2-1v6.6H3V5.7zm0 12.6l7.2 1v-6.5H3v5.5zm8.1 1.1L21 21V12.3h-9.9v6.1zm0-13.9v6.2H21V3l-9.9 1.4z"/></svg>
+    )],
+  ]
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+      {logos.map(([label, svg]) => (
+        <div key={label} title={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, opacity: 0.85 }}>
+          {svg}
+          <span style={{ fontSize: 10.5, color: '#9AA39D', fontWeight: 600 }}>{label}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /* ---------- Auth card ---------- */
 function AuthCard({ mode, setMode, onClose }) {
   const navigate = useNavigate()
   const auth = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [checkInbox, setCheckInbox] = useState(false)
@@ -111,7 +141,7 @@ function AuthCard({ mode, setMode, onClose }) {
     try {
       if (isSupabaseConfigured()) {
         if (mode === 'signup') {
-          const res = await auth.signUp(email, password, name)
+          const res = await auth.signUp(email, password, firstName.trim(), lastName.trim())
           if (res.needsConfirmation) {
             // Email confirmation is on — show the check-inbox screen instead
             // of bouncing to the landing page.
@@ -206,9 +236,18 @@ function AuthCard({ mode, setMode, onClose }) {
 
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {mode === 'signup' && (
-            <Field label="Your name">
-              <input className="gx-input" value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" required />
-            </Field>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <Field label="First name">
+                  <input className="gx-input" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Jane" required />
+                </Field>
+              </div>
+              <div style={{ flex: 1 }}>
+                <Field label="Last name">
+                  <input className="gx-input" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Smith" required />
+                </Field>
+              </div>
+            </div>
           )}
           <Field label="Email address">
             <input className="gx-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
@@ -330,6 +369,10 @@ export default function LandingPage() {
               <span>✓ No card required</span>
               <span>✓ Works on every device</span>
               <span>✓ Set up in 3 minutes</span>
+            </div>
+            <div className="fade-up d4" style={{ marginTop: 22 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9AA39D', marginBottom: 12 }}>Protects every device your child uses</div>
+              <DeviceLogos />
             </div>
           </div>
           <div className="fade-up d2"><HeroArt /></div>

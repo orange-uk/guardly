@@ -54,6 +54,8 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const auth = useAuth()
   const ctx = useOutletContext()
+  const meta = auth?.user?.user_metadata || {}
+  const firstName = meta.first_name || (meta.full_name || '').trim().split(' ')[0] || ''
 
   useEffect(() => { load() }, [])
 
@@ -128,6 +130,7 @@ export default function Dashboard() {
   return (
     <div className="fade-up">
       <div style={{ marginBottom: 26 }}>
+        {firstName && <p style={{ color: '#1F9D6B', fontSize: 15, fontWeight: 600, marginBottom: 2 }}>Hi {firstName} 👋</p>}
         <h1 style={{ fontFamily: FONT_D, fontSize: 30, fontWeight: 600, marginBottom: 4 }}>Your family</h1>
         <p style={{ color: '#5B655F', fontSize: 15 }}>Add each child, then add the devices they use. Every device is protected at home and everywhere else.</p>
       </div>
