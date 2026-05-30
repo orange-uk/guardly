@@ -21,7 +21,7 @@ export default function LandingPage() {
     // Placeholder auth — wire up Clerk/Auth0/Supabase here
     setTimeout(() => {
       setLoading(false)
-      navigate('/')
+      navigate(mode === 'login' ? '/app' : '/onboarding')
     }, 800)
   }
 
