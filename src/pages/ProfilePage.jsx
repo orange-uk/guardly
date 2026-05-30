@@ -210,7 +210,7 @@ export default function ProfilePage() {
             {blockedCatCount} categories · {blockedServiceCount} apps & sites blocked
           </p>
         </div>
-        <button onClick={() => navigate(`/profile/${profileId}/install`)} style={{
+        <button onClick={() => navigate(`/app/profile/${profileId}/install`)} style={{
           padding: '8px 16px', borderRadius: 8, background: '#1D9E75',
           color: '#fff', border: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer'
         }}>
