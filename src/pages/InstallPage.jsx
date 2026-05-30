@@ -23,8 +23,9 @@ export default function InstallPage() {
   const { profileId } = useParams()
   const [platform, setPlatform] = useState('iphone')
 
-  const dotHost = `${profileId}.dns.nextdns.io`
-  const configUrl = `https://api.nextdns.io/profiles/${profileId}/apple-configuration-profile`
+  // Guardly proxy URLs — engine is invisible to the user
+  const configUrl = `${window.location.origin}/api/install/${profileId}`
+  const dotHost = 'dns.guardly.app'
 
   const tabBtn = (p, label) => (
     <button onClick={() => setPlatform(p)} style={{
