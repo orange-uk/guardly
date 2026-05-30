@@ -1,108 +1,87 @@
-// functions/api/install/[profileId].js
-// Generates an Apple .mobileconfig on the fly, served under the Guardly domain.
-// This is the proven approach: we build the same profile structure NextDNS uses
-// (verified against a real signed profile), pointing at the encrypted-DNS
-// endpoint. Ours is unsigned, so the device shows a normal "unsigned" notice
-// during install — it installs fine. The engine is never named to the user.
+// functions/api/profiles/[profileId].js
+// Handles operations on a specific NextDNS profile
 
-function uuid() {
-  return (crypto.randomUUID && crypto.randomUUID()) ||
-    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = Math.random() * 16 | 0
-      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
-    })
+const NEXTDNS_BASE = 'https://api.nextdns.io'
+
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  }
 }
 
-function buildProfile(profileId, deviceName) {
-  const u1 = uuid()
-  const u2 = uuid()
-  const serverUrl = `https://apple.dns.nextdns.io/${profileId}/${encodeURIComponent(deviceName)}`
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-  <dict>
-    <key>PayloadDisplayName</key>
-    <string>Guardly</string>
-    <key>PayloadDescription</key>
-    <string>This profile keeps this device protected by Guardly on every network.</string>
-    <key>PayloadIdentifier</key>
-    <string>app.guardly.${profileId}.profile</string>
-    <key>PayloadScope</key>
-    <string>System</string>
-    <key>PayloadType</key>
-    <string>Configuration</string>
-    <key>PayloadUUID</key>
-    <string>${u1}</string>
-    <key>PayloadVersion</key>
-    <integer>1</integer>
-    <key>PayloadContent</key>
-    <array>
-      <dict>
-        <key>DNSSettings</key>
-        <dict>
-          <key>DNSProtocol</key>
-          <string>HTTPS</string>
-          <key>ServerURL</key>
-          <string>${serverUrl}</string>
-        </dict>
-        <key>OnDemandRules</key>
-        <array>
-          <dict>
-            <key>Action</key>
-            <string>EvaluateConnection</string>
-            <key>ActionParameters</key>
-            <array>
-              <dict>
-                <key>DomainAction</key>
-                <string>NeverConnect</string>
-                <key>Domains</key>
-                <array>
-                  <string>captive.apple.com</string>
-                  <string>3gppnetwork.org</string>
-                </array>
-              </dict>
-            </array>
-          </dict>
-          <dict>
-            <key>Action</key>
-            <string>Connect</string>
-          </dict>
-        </array>
-        <key>PayloadType</key>
-        <string>com.apple.dnsSettings.managed</string>
-        <key>PayloadIdentifier</key>
-        <string>app.guardly.${profileId}.profile.dnsSettings.managed</string>
-        <key>PayloadUUID</key>
-        <string>${u2}</string>
-        <key>PayloadDisplayName</key>
-        <string>Guardly</string>
-        <key>PayloadOrganization</key>
-        <string>Guardly</string>
-        <key>PayloadVersion</key>
-        <integer>1</integer>
-      </dict>
-    </array>
-  </dict>
-</plist>`
+async function nextdns(apiKey, path, method = 'GET', body = null) {
+  const opts = {
+    method,
+    headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' }
+  }
+  if (body) opts.body = JSON.stringify(body)
+  const res = await fetch(`${NEXTDNS_BASE}${path}`, opts)
+  const text = await res.text()
+  let data
+  try { data = text ? JSON.parse(text) : { success: true } }
+  catch { data = { success: true } }
+  return { status: res.status, data, ok: res.ok }
+}
+
+// Always return a 200 with a JSON body. We never echo upstream no-body
+// statuses (204/205/304) because attaching a body to those throws in the
+// browser ("Response with null body status cannot have a body").
+function reply(data, upstreamOk = true) {
+  return new Response(JSON.stringify(data), {
+    status: upstreamOk ? 200 : 502,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+  })
 }
 
 export async function onRequest(context) {
-  const { params, request } = context
-  const profileId = (params.profileId || '').trim()
-  if (!profileId) return new Response('Missing profile', { status: 400 })
+  const { request, env, params } = context
+  const profileId = params.profileId
 
-  // Device name for the DNS endpoint (helps NextDNS analytics). Clean it.
-  const raw = new URL(request.url).searchParams.get('name') || 'Guardly'
-  let deviceName = raw.normalize('NFKD').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, ' ').slice(0, 40)
-  if (!deviceName) deviceName = 'Guardly'
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders() })
+  }
 
-  const xml = buildProfile(profileId, deviceName)
-  return new Response(xml, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/x-apple-aspen-config; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="guardly.mobileconfig"',
-      'Cache-Control': 'no-store',
+  const apiKey = env.NEXTDNS_API_KEY
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: 'API key not configured' }), {
+      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+    })
+  }
+
+  const url = new URL(request.url)
+  const section = url.searchParams.get('section')
+
+  try {
+    if (request.method === 'GET') {
+      const path = section ? `/profiles/${profileId}/${section}` : `/profiles/${profileId}`
+      const { data, ok } = await nextdns(apiKey, path)
+      return reply(data, ok)
     }
-  })
+
+    if (request.method === 'PATCH') {
+      const body = await request.json()
+      const path = section ? `/profiles/${profileId}/${section}` : `/profiles/${profileId}`
+      const { data, ok } = await nextdns(apiKey, path, 'PATCH', body)
+      return reply(data, ok)
+    }
+
+    if (request.method === 'POST') {
+      const body = await request.json()
+      const path = section ? `/profiles/${profileId}/${section}` : `/profiles/${profileId}`
+      const { data, ok } = await nextdns(apiKey, path, 'POST', body)
+      return reply(data, ok)
+    }
+
+    if (request.method === 'DELETE') {
+      const { ok } = await nextdns(apiKey, `/profiles/${profileId}`, 'DELETE')
+      return reply({ success: ok }, ok)
+    }
+
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+    })
+  }
 }
