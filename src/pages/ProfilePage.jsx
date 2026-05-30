@@ -18,10 +18,9 @@ const CATEGORIES = [
   { id: 'gambling', label: 'Gambling', desc: 'Betting & casino', icon: '🎰' },
   { id: 'dating', label: 'Dating', desc: 'Dating apps & sites', icon: '💘' },
   { id: 'piracy', label: 'Piracy', desc: 'Torrent & piracy', icon: '🏴‍☠️' },
-  { id: 'socialNetworks', label: 'Social media', desc: 'Instagram, TikTok, X', icon: '📱' },
-  { id: 'videoStreaming', label: 'Video streaming', desc: 'YouTube, Netflix', icon: '📺' },
-  { id: 'gaming', label: 'Gaming', desc: 'Games & platforms', icon: '🎮' },
-  { id: 'drugs', label: 'Drugs', desc: 'Drug-related content', icon: '⚠️' },
+  { id: 'social-networks', label: 'Social media', desc: 'Instagram, TikTok, X & more', icon: '📱' },
+  { id: 'video-streaming', label: 'Video streaming', desc: 'YouTube, Netflix & more', icon: '📺' },
+  { id: 'online-gaming', label: 'Online gaming', desc: 'Games & gaming networks', icon: '🎮' },
 ]
 
 const SERVICES = [
