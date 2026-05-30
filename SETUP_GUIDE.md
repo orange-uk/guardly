@@ -222,3 +222,21 @@ Guardly app, which will link them to your household properly.
 - **Install link fix**: the install page now generates the .mobileconfig itself, so
   it works for any child. Profiles are unsigned (normal "Unverified" notice on install).
 No new SQL or env vars for this batch.
+
+## REQUIRED SQL — names decoupled from the engine (this batch)
+Child names now live in YOUR database, not in the engine, so duplicate names never
+clash and renaming is instant. Run this once in Supabase → SQL Editor:
+
+```sql
+alter table household_profiles add column if not exists name text;
+```
+
+That's the only change needed. After deploying:
+- Creating a child sends only a unique code to the engine; the real name is stored
+  in household_profiles.name.
+- Two children can share a name (even across families) with no error.
+- Renaming a child updates the database instantly — no engine call, never clashes.
+
+Existing children created before this change will show their stored name, or
+"Child" if they predate the name column — easiest to delete old test ones in the
+engine dashboard and re-add through the app.

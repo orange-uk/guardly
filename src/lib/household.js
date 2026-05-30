@@ -72,15 +72,26 @@ export async function redeemInvite(code, userId) {
   return invite.household_id
 }
 
-// --- Child profiles owned by household ---
-export async function linkProfile(householdId, profileId) {
+// --- Child profiles owned by household (name lives HERE, not in NextDNS) ---
+export async function linkProfile(householdId, profileId, name) {
   if (!isSupabaseConfigured() || !householdId) return
-  await supabase.from('household_profiles').insert({ household_id: householdId, profile_id: profileId })
+  await supabase.from('household_profiles').insert({ household_id: householdId, profile_id: profileId, name: name || 'Child' })
 }
 export async function getProfileIds(householdId) {
   if (!isSupabaseConfigured() || !householdId) return null
   const { data } = await supabase.from('household_profiles').select('profile_id').eq('household_id', householdId)
   return (data || []).map(r => r.profile_id)
+}
+// Returns [{ profile_id, name }] — the source of truth for a family's children.
+export async function getHouseholdProfiles(householdId) {
+  if (!isSupabaseConfigured() || !householdId) return []
+  const { data } = await supabase.from('household_profiles')
+    .select('profile_id, name, created_at').eq('household_id', householdId).order('created_at')
+  return data || []
+}
+export async function renameProfileInHousehold(householdId, profileId, name) {
+  if (!isSupabaseConfigured() || !householdId) return
+  await supabase.from('household_profiles').update({ name }).eq('household_id', householdId).eq('profile_id', profileId)
 }
 export async function unlinkProfile(householdId, profileId) {
   if (!isSupabaseConfigured() || !householdId) return

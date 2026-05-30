@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  getProfileSection, updateProfileSection, updateProfile, addToList,
-  getLogs, getAnalytics, updateSchedule, getProfiles
+  getProfileSection, updateProfileSection, addToList,
+  getLogs, getAnalytics, updateSchedule
 } from '../api'
 import { friendlyDomain, groupActivity } from '../lib/friendlyDomains'
-import { useAuth } from '../lib/AuthContext'
+import { useAuth, getOwnedProfiles, renameProfileForUser } from '../lib/AuthContext'
 import { getHousehold, getDevices, removeDevice } from '../lib/household'
 
 const FONT_D = "'Fraunces', Georgia, serif"
@@ -99,7 +99,7 @@ export default function ProfilePage() {
       getProfileSection(profileId, 'parentalControl'),
       getProfileSection(profileId, 'denylist'),
       getProfileSection(profileId, 'allowlist'),
-      getProfiles(),
+      auth?.user ? getOwnedProfiles(auth.user.id) : Promise.resolve(null),
     ])
     const [pcR, denyR, allowR, allR] = results
 
@@ -117,13 +117,11 @@ export default function ProfilePage() {
     if (allowR.status === 'fulfilled') {
       setAllowlist(allowR.value.data || [])
     }
-    if (allR.status === 'fulfilled') {
-      const profiles = allR.value.data || []
-      const i = profiles.findIndex(p => p.id === profileId); setIdx(i >= 0 ? i : 0)
-      const found = profiles.find(p => p.id === profileId)
-      const raw = found?.name || profileId
-      const parts = raw.split(' | ')
-      setName(parts[0]); setDevice(parts[1] || '')
+    if (allR.status === 'fulfilled' && allR.value) {
+      const profiles = allR.value || []
+      const i = profiles.findIndex(p => p.profile_id === profileId); setIdx(i >= 0 ? i : 0)
+      const found = profiles.find(p => p.profile_id === profileId)
+      setName(found?.name || 'Child'); setDevice('')
     }
     // Only show an error if the core settings genuinely failed to load.
     if (pcR.status === 'rejected') setError('Some settings could not load. Pull to refresh or try again.')
@@ -187,8 +185,10 @@ export default function ProfilePage() {
   }
   async function saveEdit() {
     if (!editName.trim()) return
-    try { await updateProfile(profileId, { name: editName.trim() }); setName(editName.trim()); setEditing(false) }
-    catch { setError('Could not save name.') }
+    try {
+      if (auth?.user) await renameProfileForUser(auth.user.id, profileId, editName.trim())
+      setName(editName.trim()); setEditing(false)
+    } catch { setError('Could not save name.') }
   }
   async function toggleSafeSearch() {
     const v = !safeSearch; setSafeSearch(v); setSavingSafe('safe')

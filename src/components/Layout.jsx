@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { getProfiles } from '../api'
 import { useAuth } from '../lib/AuthContext'
-import { getOwnedProfileIds } from '../lib/AuthContext'
+import { getOwnedProfiles } from '../lib/AuthContext'
 import { useIsMobile } from '../hooks/useMediaQuery'
 import { useInstallPrompt } from '../hooks/useInstallPrompt'
 
@@ -37,11 +37,12 @@ export default function Layout() {
 
   async function load() {
     try {
-      const data = await getProfiles()
-      let list = data.data || []
+      let list = []
       if (auth?.user) {
-        const owned = (await getOwnedProfileIds(auth.user.id)) || []
-        list = list.filter(p => owned.includes(p.id))
+        list = (await getOwnedProfiles(auth.user.id)) || []
+      } else {
+        const data = await getProfiles()
+        list = (data.data || []).map(p => ({ profile_id: p.id, name: (p.name || '').split(' | ')[0] }))
       }
       setProfiles(list)
     } catch (e) { setProfiles([]) }
@@ -56,8 +57,7 @@ export default function Layout() {
   })
 
   function cleanName(p, i) {
-    const n = (p.name || '').split(' | ')[0]
-    return n || 'Child ' + (i + 1)
+    return p.name || 'Child ' + (i + 1)
   }
 
   const SidebarInner = () => (
@@ -68,7 +68,7 @@ export default function Layout() {
       </NavLink>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9AA39D', padding: '14px 13px 6px' }}>Children</div>
       {profiles.map((p, i) => (
-        <NavLink key={p.id} to={`/app/profile/${p.id}`} onClick={() => setMenuOpen(false)} style={({ isActive }) => navItem(isActive)}>
+        <NavLink key={p.profile_id} to={`/app/profile/${p.profile_id}`} onClick={() => setMenuOpen(false)} style={({ isActive }) => navItem(isActive)}>
           <span style={{ fontSize: 17 }}>{AVATARS[i % AVATARS.length]}</span> {cleanName(p, i)}
         </NavLink>
       ))}

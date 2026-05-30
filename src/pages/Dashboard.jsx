@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { getProfiles, createProfile, deleteProfile } from '../api'
-import { useAuth, getOwnedProfileIds, linkProfileToUser, unlinkProfileForUser } from '../lib/AuthContext'
+import { useAuth, getOwnedProfiles, linkProfileToUser, unlinkProfileForUser } from '../lib/AuthContext'
 import { getDevicesForProfiles } from '../lib/household'
 
 const FONT_D = "'Fraunces', Georgia, serif"
@@ -11,7 +11,7 @@ const TINT_TEXT = ['#0E5E42','#3E7CB1','#9A6B12','#C2502F','#6B4D9E','#A33866']
 
 function ProfileCard({ profile, index, devices, onDelete, onClick }) {
   const [confirm, setConfirm] = useState(false)
-  const name = (profile.name || '').split(' | ')[0] || 'Child ' + (index + 1)
+  const name = profile.name || 'Child ' + (index + 1)
   const tint = TINTS[index % TINTS.length]
   const tintText = TINT_TEXT[index % TINT_TEXT.length]
   const devList = devices || []
@@ -20,7 +20,7 @@ function ProfileCard({ profile, index, devices, onDelete, onClick }) {
     <div onClick={onClick} className="gx-card" style={{ padding: 22, cursor: 'pointer', position: 'relative', transition: 'transform 0.15s, box-shadow 0.15s' }}
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = 'var(--shadow)' }}
       onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)' }}>
-      <button onClick={e => { e.stopPropagation(); if (confirm) onDelete(profile.id); else { setConfirm(true); setTimeout(() => setConfirm(false), 3000) } }}
+      <button onClick={e => { e.stopPropagation(); if (confirm) onDelete(profile.profile_id); else { setConfirm(true); setTimeout(() => setConfirm(false), 3000) } }}
         style={{ position: 'absolute', top: 14, right: 14, fontSize: confirm ? 11 : 16, fontWeight: confirm ? 700 : 400,
           color: confirm ? '#C24238' : '#C9CFC9', background: confirm ? '#FBEAE8' : 'transparent',
           padding: confirm ? '4px 9px' : '2px 6px', borderRadius: 8 }}>
@@ -59,17 +59,22 @@ export default function Dashboard() {
 
   async function load() {
     try {
-      const data = await getProfiles()
-      let list = data.data || []
+      let list = []
       if (auth?.user) {
-        // Logged in: only ever show profiles this household owns. Never "all".
-        const owned = (await getOwnedProfileIds(auth.user.id)) || []
-        list = list.filter(p => owned.includes(p.id))
+        // Source of truth for children + names is our own database.
+        const owned = await getOwnedProfiles(auth.user.id)
+        list = owned || []
+      } else {
+        // No auth (dev mode): fall back to the engine's list.
+        const data = await getProfiles()
+        list = (data.data || []).map(p => ({ profile_id: p.id, name: (p.name || '').split(' | ')[0] }))
       }
       setProfiles(list)
       if (list.length) {
-        const map = await getDevicesForProfiles(list.map(p => p.id))
+        const map = await getDevicesForProfiles(list.map(p => p.profile_id))
         setDevicesByProfile(map)
+      } else {
+        setDevicesByProfile({})
       }
     } catch (e) { setError('Could not load your children. Check your connection.') }
     finally { setLoading(false) }
@@ -79,14 +84,18 @@ export default function Dashboard() {
     e.preventDefault()
     if (!newName.trim()) return
     setCreating(true)
+    setError(null)
     try {
-      const result = await createProfile({ name: newName.trim() })
+      // The engine only needs a unique code as the profile name — the human
+      // name lives in our database, so duplicate names never clash.
+      const code = 'gdly-' + Math.random().toString(36).slice(2, 8)
+      const result = await createProfile({ name: code })
       const id = result.data?.id
-      if (auth?.user && id) await linkProfileToUser(auth.user.id, id, auth.user.user_metadata?.full_name)
+      if (!id) throw new Error('No profile id returned')
+      if (auth?.user) await linkProfileToUser(auth.user.id, id, newName.trim())
       setNewName('')
       await load(); ctx?.reloadProfiles?.()
-      // Send them straight to add a device — connects the flow.
-      if (id) navigate(`/app/profile/${id}/install`)
+      navigate(`/app/profile/${id}/install`)
     } catch (e) { setError('Could not create profile: ' + e.message) }
     finally { setCreating(false) }
   }
@@ -111,7 +120,7 @@ export default function Dashboard() {
       // dashboard can be refreshed rather than silently leaving a stale link.
       setError('Child removed, but tidying up took a moment. Refresh if it still shows.')
     }
-    setProfiles(profiles.filter(p => p.id !== id))
+    setProfiles(profiles.filter(p => p.profile_id !== id))
     setDevicesByProfile(prev => { const c = { ...prev }; delete c[id]; return c })
     ctx?.reloadProfiles?.()
   }
@@ -132,7 +141,7 @@ export default function Dashboard() {
       {loading ? <p style={{ color: '#9AA39D' }}>Loading…</p> : (
         <div className="gx-feat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 16 }}>
           {profiles.map((p, i) => (
-            <ProfileCard key={p.id} profile={p} index={i} devices={devicesByProfile[p.id]} onDelete={handleDelete} onClick={() => navigate(`/app/profile/${p.id}`)} />
+            <ProfileCard key={p.profile_id} profile={p} index={i} devices={devicesByProfile[p.profile_id]} onDelete={handleDelete} onClick={() => navigate(`/app/profile/${p.profile_id}`)} />
           ))}
           <form onSubmit={handleCreate} className="gx-card" style={{ padding: 22, border: '1.5px dashed #CFD8D2', background: '#FCFBF7' }}>
             <div style={{ width: 54, height: 54, borderRadius: 16, background: '#F3EEE4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, color: '#9AA39D', marginBottom: 14 }}>＋</div>

@@ -1,7 +1,7 @@
 // src/lib/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { supabase, isSupabaseConfigured } from './supabase'
-import { ensureHousehold, getHousehold, getProfileIds, linkProfile, unlinkProfile } from './household'
+import { ensureHousehold, getHousehold, getProfileIds, getHouseholdProfiles, linkProfile, renameProfileInHousehold, unlinkProfile } from './household'
 
 const AuthContext = createContext(null)
 
@@ -94,10 +94,22 @@ export async function getOwnedProfileIds(userId) {
   const ids = await getProfileIds(hh)
   return ids || []
 }
-export async function linkProfileToUser(userId, profileId, displayName) {
+// Returns [{ profile_id, name }] — children with their human names.
+export async function getOwnedProfiles(userId) {
+  if (!isSupabaseConfigured()) return null
+  const hh = await ensureHousehold(userId)
+  if (!hh) return []
+  return await getHouseholdProfiles(hh)
+}
+export async function linkProfileToUser(userId, profileId, childName) {
   if (!isSupabaseConfigured()) return
-  const hh = await ensureHousehold(userId, displayName)
-  if (hh) await linkProfile(hh, profileId)
+  const hh = await ensureHousehold(userId)
+  if (hh) await linkProfile(hh, profileId, childName)
+}
+export async function renameProfileForUser(userId, profileId, name) {
+  if (!isSupabaseConfigured()) return
+  const hh = await ensureHousehold(userId)
+  if (hh) await renameProfileInHousehold(hh, profileId, name)
 }
 export async function unlinkProfileForUser(userId, profileId) {
   if (!isSupabaseConfigured()) return
