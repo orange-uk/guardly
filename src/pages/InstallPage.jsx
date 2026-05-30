@@ -93,6 +93,9 @@ export default function InstallPage() {
             <ol style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 13, color: '#3F7A63', lineHeight: 1.7 }}>
               {info.lockdown.steps.map((s, i) => <li key={i}>{s}</li>)}
             </ol>
+            {info.lockdown.note && (
+              <div style={{ marginTop: 10, fontSize: 12, color: '#7A857E', fontStyle: 'italic' }}>{info.lockdown.note}</div>
+            )}
           </div>
         )}
       </div>

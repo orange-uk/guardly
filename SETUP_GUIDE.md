@@ -312,3 +312,16 @@ orphaned households. No further SQL needed unless duplicates reappear (they shou
 
 No new SQL or env vars for this batch. (Existing accounts: optionally run the
 first_name/last_name metadata update — already done for the main account.)
+
+## Polish batch (added to this package)
+- **Rename refreshes sidebar**: renaming a child on the profile page now updates the
+  left sidebar instantly (no reload needed).
+- **iPhone install ordering**: the install steps now make clear you must install Guardly
+  FIRST (account changes set to "Allow"), and only lock down (Accounts → Don't Allow)
+  AFTER. Includes a note on temporarily allowing changes to reinstall later. Shown both
+  on the install page and during onboarding.
+- **Dashboard redesign**: atmospheric gradient header with a live family summary, richer
+  per-child cards (colored band, overlapping avatar tile, device chips, hover glow), and
+  a warmer add-child card.
+
+No new SQL or env vars.

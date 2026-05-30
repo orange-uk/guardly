@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import {
   getProfileSection, updateProfileSection, addToList,
   getLogs, getAnalytics, updateSchedule
@@ -56,6 +56,7 @@ function Card({ children, style }) {
 export default function ProfilePage() {
   const { profileId } = useParams()
   const navigate = useNavigate()
+  const ctx = useOutletContext()
   const [tab, setTab] = useState('filters')
   const [categories, setCategories] = useState({})
   const [services, setServices] = useState({})
@@ -198,6 +199,7 @@ export default function ProfilePage() {
     try {
       if (auth?.user) await renameProfileForUser(auth.user.id, profileId, editName.trim())
       setName(editName.trim()); setEditing(false)
+      ctx?.reloadProfiles?.()
     } catch { setError('Could not save name.') }
   }
   async function toggleSafeSearch() {

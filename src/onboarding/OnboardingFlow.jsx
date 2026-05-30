@@ -167,6 +167,19 @@ function Step2({ profileId, childName, onNext }) {
           </div>
         ))}
       </div>
+      {info.warn && (
+        <div style={{ padding: '11px 14px', background: '#FBF1DD', borderRadius: 12, fontSize: 12.5, color: '#9A6B12', marginBottom: 14, lineHeight: 1.5 }}>⚠️ {info.warn}</div>
+      )}
+      {info.lockdown && (
+        <div style={{ padding: '13px 15px', background: '#EAF6F0', borderRadius: 12, border: '1px solid #C2E6D5', marginBottom: 14 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#177A53', marginBottom: 6 }}>🔒 Make it tamper-proof (after installing)</div>
+          <div style={{ fontSize: 12.5, color: '#3F7A63', lineHeight: 1.55 }}>{info.lockdown.intro}</div>
+          <ol style={{ margin: '7px 0 0', paddingLeft: 17, fontSize: 12.5, color: '#3F7A63', lineHeight: 1.65 }}>
+            {info.lockdown.steps.map((s, i) => <li key={i}>{s}</li>)}
+          </ol>
+          {info.lockdown.note && <div style={{ marginTop: 9, fontSize: 11.5, color: '#7A857E', fontStyle: 'italic' }}>{info.lockdown.note}</div>}
+        </div>
+      )}
       <label style={label}>{info.valueLabel}</label>
       <div style={{ background: '#F7F4ED', border: '1px solid #EAE5DA', borderRadius: 10, padding: '10px 14px', fontSize: 12.5, fontFamily: 'monospace', wordBreak: 'break-all', marginBottom: 20 }}>{info.value}</div>
       <div style={{ display: 'flex', gap: 10 }}>

@@ -43,15 +43,18 @@ export function deviceSteps(id, configUrl, dotHost, deviceName) {
           'Tap the Guardly profile → Install',
           'Enter the device passcode to confirm',
         ],
+        warn: 'Install Guardly FIRST. If Screen Time restrictions are already on, set account changes to "Allow" during install — otherwise the profile will not install. Lock it down (below) only after Guardly is installed.',
         lockdown: {
-          intro: "Without this step, a child can simply delete the Guardly profile and remove all protection. To stop that, lock the device so the profile can't be removed:",
+          intro: "Once Guardly is installed, lock the device so a child can't delete the profile. Do these in order — and only after the profile is installed:",
           steps: [
             'Make sure the device is signed in with your child\'s own (child) Apple ID — set up through Family Sharing, not your adult account.',
             'On the device: Settings → Screen Time → turn it on and set a Screen Time passcode only you know (different from the unlock code).',
             'Go to Screen Time → Content & Privacy Restrictions → turn it on.',
+            'Confirm Guardly is already installed (Settings → General → VPN & Device Management) before the next step.',
             'Under "Allow Changes To", tap Accounts → set to Don\'t Allow.',
             'This greys out the Apple ID and blocks profile removal — now the child can\'t delete Guardly without your Screen Time passcode.',
           ],
+          note: 'Need to reinstall or change Guardly later? Set Accounts back to "Allow" first (enter your Screen Time passcode), make the change, then set it back to "Don\'t Allow".',
         },
       }
     case 'mac':
