@@ -92,6 +92,7 @@ function AuthCard({ mode, setMode, onClose }) {
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [checkInbox, setCheckInbox] = useState(false)
 
   async function submit(e) {
     e.preventDefault()
@@ -99,14 +100,20 @@ function AuthCard({ mode, setMode, onClose }) {
     try {
       if (isSupabaseConfigured()) {
         if (mode === 'signup') {
-          await auth.signUp(email, password, name)
+          const res = await auth.signUp(email, password, name)
+          if (res.needsConfirmation) {
+            // Email confirmation is on — show the check-inbox screen instead
+            // of bouncing to the landing page.
+            setCheckInbox(true)
+            setLoading(false)
+            return
+          }
           navigate('/onboarding')
         } else {
           await auth.signIn(email, password)
           navigate('/app')
         }
       } else {
-        // Fallback before Supabase keys are added
         const known = JSON.parse(localStorage.getItem('guardly_users') || '[]')
         const isKnown = known.includes(email.toLowerCase())
         if (mode === 'signup') {
@@ -139,6 +146,26 @@ function AuthCard({ mode, setMode, onClose }) {
           <Logo size={30} />
           <span style={{ fontFamily: FONT_D, fontWeight: 600, fontSize: 19 }}>Guardly</span>
         </div>
+
+        {checkInbox ? (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#E8F5EE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, margin: '0 auto 18px' }}>✉️</div>
+            <h1 style={{ fontFamily: FONT_D, fontSize: 24, marginBottom: 10 }}>Check your inbox</h1>
+            <p style={{ color: '#5B655F', fontSize: 14.5, lineHeight: 1.65, marginBottom: 8 }}>
+              We've sent a confirmation link to <strong>{email}</strong>.
+            </p>
+            <p style={{ color: '#5B655F', fontSize: 14.5, lineHeight: 1.65, marginBottom: 24 }}>
+              Click the link in that email to activate your account, then come back and sign in.
+            </p>
+            <button onClick={() => { setCheckInbox(false); setMode('login') }} className="gx-btn" style={{ width: '100%' }}>
+              Back to sign in
+            </button>
+            <p style={{ fontSize: 12.5, color: '#9AA39D', marginTop: 16, lineHeight: 1.6 }}>
+              Didn't get it? Check your spam folder, or wait a minute and try again. Links expire after a while, so use the most recent email.
+            </p>
+          </div>
+        ) : (
+        <>
         <h1 style={{ fontFamily: FONT_D, fontSize: 26, marginBottom: 6 }}>
           {mode === 'login' ? 'Welcome back' : 'Create your account'}
         </h1>
@@ -180,6 +207,8 @@ function AuthCard({ mode, setMode, onClose }) {
           <p style={{ fontSize: 12, color: '#9AA39D', marginTop: 8, textAlign: 'center' }}>
             14-day free trial · No card required
           </p>
+        )}
+        </>
         )}
       </div>
     </div>

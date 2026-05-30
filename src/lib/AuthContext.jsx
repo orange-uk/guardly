@@ -33,7 +33,9 @@ export function AuthProvider({ children }) {
       options: { data: { full_name: name } }
     })
     if (error) throw error
-    return data
+    // If email confirmation is on, there's a user but no active session yet.
+    const needsConfirmation = !!data.user && !data.session
+    return { ...data, needsConfirmation }
   }
 
   const signIn = async (email, password) => {
