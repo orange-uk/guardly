@@ -18,7 +18,8 @@ async function nextdns(apiKey, path, method = 'GET', body = null) {
   }
   if (body) opts.body = JSON.stringify(body)
   const res = await fetch(`${NEXTDNS_BASE}${path}`, opts)
-  const data = await res.json()
+  const text = await res.text()
+  const data = text ? JSON.parse(text) : { success: true }
   return { status: res.status, data }
 }
 
