@@ -286,3 +286,18 @@ Delete these stale files from GitHub if still present:
 4. Flag one app as "recreation", set a window, test on-device in/out of the window.
 5. Two-account isolation: second signup should see zero children.
 6. iPhone: follow the tamper-proof steps; confirm the profile can't be removed.
+
+## Household fixes (added to final batch)
+- **Duplicate households fixed**: ensureHousehold now (a) shares one call across
+  concurrent loaders so Layout+Dashboard can't each create a household, and (b) always
+  reuses your OLDEST membership — so logging in repeatedly no longer spawns duplicates.
+- **Signup fork**: the first onboarding screen now asks "Set up my family" vs
+  "Join my partner's family". The join path takes an invite code and drops you straight
+  into the existing family (no household created, no child step) — matching the
+  dad-creates / mum-joins flow.
+- **Join cleanup**: redeeming an invite now also deletes any empty household the joiner
+  had auto-created, so joining never leaves orphans behind.
+
+### One-time cleanup already done via SQL
+Consolidated to a single household keyed on the real one; deleted duplicate/empty/
+orphaned households. No further SQL needed unless duplicates reappear (they shouldn't).

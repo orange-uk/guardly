@@ -14,23 +14,37 @@ function genCode() {
 // Returns the household id for the current user, creating one if needed.
 // Uses a client-generated id and NO select-after-insert, so RLS read
 // policies can never block the membership row from being written.
+// Module-level promise cache so concurrent callers (Layout + Dashboard loading
+// at the same time) share ONE resolution instead of each creating a household.
+let _ensurePromise = null
+let _ensureFor = null
+
 export async function ensureHousehold(userId, displayName) {
   if (!isSupabaseConfigured() || !userId) return null
-  // Already a member? (the hm read policy allows reading your own rows)
-  const { data: mem } = await supabase
-    .from('household_members').select('household_id').eq('user_id', userId).limit(1)
-  if (mem && mem.length) return mem[0].household_id
+  // Reuse an in-flight call for the same user (prevents race duplicates).
+  if (_ensurePromise && _ensureFor === userId) return _ensurePromise
+  _ensureFor = userId
+  _ensurePromise = (async () => {
+    // Already a member? Pick the OLDEST membership so everyone converges on the
+    // same household even if stray duplicates exist.
+    const { data: mem } = await supabase
+      .from('household_members').select('household_id, created_at')
+      .eq('user_id', userId).order('created_at').limit(1)
+    if (mem && mem.length) return mem[0].household_id
 
-  // Create a brand-new household with an id we generate here.
-  const hhId = (crypto.randomUUID && crypto.randomUUID()) ||
-    ('hh-' + Date.now() + '-' + Math.random().toString(36).slice(2))
-  const { error: e1 } = await supabase.from('households')
-    .insert({ id: hhId, name: (displayName || 'My') + ' family' })
-  if (e1) return null
-  const { error: e2 } = await supabase.from('household_members')
-    .insert({ household_id: hhId, user_id: userId, role: 'parent' })
-  if (e2) return null
-  return hhId
+    // Genuinely no household → create one.
+    const hhId = (crypto.randomUUID && crypto.randomUUID()) ||
+      ('hh-' + Date.now() + '-' + Math.random().toString(36).slice(2))
+    const { error: e1 } = await supabase.from('households')
+      .insert({ id: hhId, name: (displayName || 'My') + ' family' })
+    if (e1) return null
+    const { error: e2 } = await supabase.from('household_members')
+      .insert({ household_id: hhId, user_id: userId, role: 'parent' })
+    if (e2) return null
+    return hhId
+  })()
+  try { return await _ensurePromise }
+  finally { _ensurePromise = null; _ensureFor = null }
 }
 
 export async function getHousehold(userId) {
@@ -65,10 +79,28 @@ export async function redeemInvite(code, userId) {
     .from('household_invites').select('*').eq('code', clean).eq('accepted', false).limit(1)
   if (error || !inv || !inv.length) throw new Error('That invite code is invalid or has already been used.')
   const invite = inv[0]
-  // Remove any household this user already created on their own, then join.
+
+  // The joiner may have had a household auto-created on login. Find those.
+  const { data: old } = await supabase
+    .from('household_members').select('household_id').eq('user_id', userId)
+  const oldIds = (old || []).map(r => r.household_id).filter(id => id !== invite.household_id)
+
+  // Leave any old households, then join the invited one.
   await supabase.from('household_members').delete().eq('user_id', userId)
-  await supabase.from('household_members').insert({ household_id: invite.household_id, user_id: userId, role: 'parent' })
+  await supabase.from('household_members')
+    .insert({ household_id: invite.household_id, user_id: userId, role: 'parent' })
   await supabase.from('household_invites').update({ accepted: true }).eq('id', invite.id)
+
+  // Tidy up any now-empty households the joiner left behind (and their stray
+  // empty profiles), so we don't accumulate orphans.
+  for (const id of oldIds) {
+    const { data: stillMembers } = await supabase
+      .from('household_members').select('user_id').eq('household_id', id).limit(1)
+    if (!stillMembers || !stillMembers.length) {
+      await supabase.from('household_profiles').delete().eq('household_id', id)
+      await supabase.from('households').delete().eq('id', id)
+    }
+  }
   return invite.household_id
 }
 

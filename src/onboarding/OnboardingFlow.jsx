@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createProfile } from '../api'
 import { useAuth, linkProfileToUser } from '../lib/AuthContext'
-import { getHousehold, addDevice } from '../lib/household'
+import { getHousehold, addDevice, redeemInvite } from '../lib/household'
 import { deviceList, DEVICES, deviceSteps } from '../lib/devices'
 
 const FONT_D = "'Fraunces', Georgia, serif"
@@ -30,18 +30,57 @@ function Bar({ step }) {
 
 const label = { display: 'block', fontSize: 12, fontWeight: 600, color: '#5B655F', marginBottom: 6 }
 
-function Step0({ onNext, userName }) {
+function Step0({ onSetup, onJoin, userName }) {
   return (
     <div>
       <div style={{ fontSize: 38, marginBottom: 14 }}>👋</div>
       <h2 style={{ fontFamily: FONT_D, fontSize: 27, marginBottom: 8 }}>Welcome{userName ? ', ' + userName.split(' ')[0] : ''}!</h2>
-      <p style={{ fontSize: 15, color: '#5B655F', lineHeight: 1.7, marginBottom: 26 }}>Let's get your child protected in about 3 minutes. Guardly works at the <strong>device level</strong> — protection travels with the device wherever it goes.</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 30 }}>
-        {[['👤','Create a profile for your child'],['📱','Install a profile on their specific device'],['🌍','Protected on every network — home, school, anywhere']].map(([i, t]) => (
-          <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 14, background: '#F7F4ED', fontSize: 14.5 }}><span style={{ fontSize: 19 }}>{i}</span> {t}</div>
-        ))}
-      </div>
-      <button onClick={onNext} className="gx-btn" style={{ width: '100%' }}>Let's get started →</button>
+      <p style={{ fontSize: 15, color: '#5B655F', lineHeight: 1.7, marginBottom: 26 }}>How would you like to start?</p>
+      <button onClick={onSetup} className="gx-card" style={{ display: 'block', width: '100%', textAlign: 'left', padding: '18px 20px', marginBottom: 14, cursor: 'pointer', border: '1px solid #EAE5DA' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 26 }}>🏡</span>
+          <div>
+            <div style={{ fontFamily: FONT_D, fontSize: 17, fontWeight: 600 }}>Set up my family</div>
+            <div style={{ fontSize: 13.5, color: '#9AA39D' }}>Add your children and protect their devices.</div>
+          </div>
+        </div>
+      </button>
+      <button onClick={onJoin} className="gx-card" style={{ display: 'block', width: '100%', textAlign: 'left', padding: '18px 20px', marginBottom: 6, cursor: 'pointer', border: '1px solid #EAE5DA' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 26 }}>👪</span>
+          <div>
+            <div style={{ fontFamily: FONT_D, fontSize: 17, fontWeight: 600 }}>Join my partner's family</div>
+            <div style={{ fontSize: 13.5, color: '#9AA39D' }}>Got an invite code? Join the family they've already set up.</div>
+          </div>
+        </div>
+      </button>
+    </div>
+  )
+}
+
+function JoinStep({ onJoined, onBack }) {
+  const [code, setCode] = useState(''), [busy, setBusy] = useState(false), [err, setErr] = useState(null)
+  const auth = useAuth()
+  async function join() {
+    if (!code.trim()) return
+    setBusy(true); setErr(null)
+    try {
+      await redeemInvite(code.trim(), auth.user.id)
+      onJoined()
+    } catch (e) { setErr(e.message || 'Could not join. Check the code and try again.'); setBusy(false) }
+  }
+  return (
+    <div>
+      <div style={{ fontSize: 34, marginBottom: 14 }}>👪</div>
+      <h2 style={{ fontFamily: FONT_D, fontSize: 25, marginBottom: 8 }}>Join your family</h2>
+      <p style={{ fontSize: 14.5, color: '#5B655F', lineHeight: 1.7, marginBottom: 22 }}>Enter the invite code your partner shared with you. You'll join their family and see the children they've already set up — nothing to add yourself.</p>
+      <label style={{ fontSize: 13, fontWeight: 600, color: '#5B655F', display: 'block', marginBottom: 6 }}>Invite code</label>
+      <input className="gx-input" value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="e.g. 7K2P9Q" style={{ marginBottom: 14, letterSpacing: '0.1em' }} />
+      {err && <div style={{ fontSize: 13.5, color: '#C24238', marginBottom: 14 }}>{err}</div>}
+      <button onClick={join} disabled={busy || !code.trim()} className="gx-btn" style={{ width: '100%', opacity: (busy || !code.trim()) ? 0.6 : 1, marginBottom: 10 }}>
+        {busy ? 'Joining…' : 'Join family →'}
+      </button>
+      <button onClick={onBack} className="gx-btn-ghost" style={{ width: '100%' }}>← Back</button>
     </div>
   )
 }
@@ -168,8 +207,9 @@ export default function OnboardingFlow() {
           </div>
           <span style={{ fontFamily: FONT_D, fontWeight: 700, fontSize: 17 }}>Guardly</span>
         </div>
-        <Bar step={step} />
-        {step === 0 && <Step0 onNext={() => setStep(1)} userName={userName} />}
+        {step !== 0 && step !== 'join' && <Bar step={step} />}
+        {step === 0 && <Step0 onSetup={() => setStep(1)} onJoin={() => setStep('join')} userName={userName} />}
+        {step === 'join' && <JoinStep onJoined={() => navigate('/app')} onBack={() => setStep(0)} />}
         {step === 1 && <Step1 onNext={({ profileId, childName }) => { setProfileId(profileId); setChildName(childName); setStep(2) }} />}
         {step === 2 && <Step2 profileId={profileId} childName={childName} onNext={async ({ deviceName, platform }) => { if (deviceName && auth?.user) { const hh = await getHousehold(auth.user.id); if (hh) await addDevice(hh.id, profileId, deviceName, platform) } setDeviceName(deviceName); setStep(3) }} />}
         {step === 3 && <Step3 childName={childName} deviceName={deviceName} onFinish={() => navigate('/app')} />}
