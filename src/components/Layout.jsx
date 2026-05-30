@@ -40,8 +40,8 @@ export default function Layout() {
       const data = await getProfiles()
       let list = data.data || []
       if (auth?.user) {
-        const owned = await getOwnedProfileIds(auth.user.id)
-        if (owned && owned.length) list = list.filter(p => owned.includes(p.id))
+        const owned = (await getOwnedProfileIds(auth.user.id)) || []
+        list = list.filter(p => owned.includes(p.id))
       }
       setProfiles(list)
     } catch (e) { setProfiles([]) }

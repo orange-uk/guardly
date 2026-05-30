@@ -161,3 +161,49 @@ Guardly is now installable like a native app:
   get stuck on an old cached version.
 No setup needed — it just works once deployed. (PWA features require the site to
 be served over HTTPS, which your Cloudflare Pages site already is.)
+
+## CRITICAL FIX — account isolation (this upload)
+Root cause found: household creation was doing an insert-then-read-back, and RLS
+blocked the read-back (you're not a member yet at that instant), so the membership
+row never got written. Result: users had no household, and the old code fell back
+to showing ALL profiles. Fixed by generating the household id in code (no read-back)
+and removing the "show everything" fallback — a logged-in user now only ever sees
+profiles their household owns.
+
+### After deploying this build, run this cleanup SQL once in Supabase:
+
+```sql
+-- 1. Remove orphaned households that never got a member (from the failed attempts)
+delete from households h
+where not exists (select 1 from household_members m where m.household_id = h.id);
+
+-- 2. Give any existing user who has no household one now
+do $$
+declare u record; new_hh uuid;
+begin
+  for u in select id from auth.users where id not in (select user_id from household_members) loop
+    new_hh := gen_random_uuid();
+    insert into households (id, name) values (new_hh, 'Family');
+    insert into household_members (household_id, user_id, role) values (new_hh, u.id, 'parent');
+  end loop;
+end $$;
+
+-- 3. See the final state — each user should have their OWN household_id
+select u.email, hm.household_id
+from auth.users u left join household_members hm on hm.user_id = u.id
+order by u.created_at;
+```
+
+### IMPORTANT: do NOT use the auth trigger
+If you created the `on_auth_user_created` trigger earlier and got "Database error
+saving new user", remove it — the app now handles household creation reliably:
+```sql
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists handle_new_user();
+```
+
+### The orphaned child profiles (Hermione, Emma, Jenny…)
+These exist as NextDNS profiles but aren't linked to anyone. After deploying, your
+dashboard will show NONE of them (correct — they're unowned). Cleanest path: delete
+the test ones from the NextDNS dashboard, then re-add your real children through the
+Guardly app, which will link them to your household properly.

@@ -62,9 +62,9 @@ export default function Dashboard() {
       const data = await getProfiles()
       let list = data.data || []
       if (auth?.user) {
-        const owned = await getOwnedProfileIds(auth.user.id)
-        if (owned && owned.length) list = list.filter(p => owned.includes(p.id))
-        else if (owned && owned.length === 0) list = [] // logged in, owns nothing yet
+        // Logged in: only ever show profiles this household owns. Never "all".
+        const owned = (await getOwnedProfileIds(auth.user.id)) || []
+        list = list.filter(p => owned.includes(p.id))
       }
       setProfiles(list)
       if (list.length) {

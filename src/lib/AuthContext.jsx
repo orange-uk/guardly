@@ -88,10 +88,11 @@ export const useAuth = () => useContext(AuthContext)
 
 // ---- Backward-compatible helpers used across the app (household-based) ----
 export async function getOwnedProfileIds(userId) {
-  if (!isSupabaseConfigured()) return null
+  if (!isSupabaseConfigured()) return null // only null when auth is off entirely
   const hh = await ensureHousehold(userId)
-  if (!hh) return []
-  return await getProfileIds(hh)
+  if (!hh) return [] // logged in but no household yet → owns nothing (never "all")
+  const ids = await getProfileIds(hh)
+  return ids || []
 }
 export async function linkProfileToUser(userId, profileId, displayName) {
   if (!isSupabaseConfigured()) return

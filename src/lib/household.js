@@ -12,18 +12,25 @@ function genCode() {
 }
 
 // Returns the household id for the current user, creating one if needed.
+// Uses a client-generated id and NO select-after-insert, so RLS read
+// policies can never block the membership row from being written.
 export async function ensureHousehold(userId, displayName) {
   if (!isSupabaseConfigured() || !userId) return null
-  // Already a member?
+  // Already a member? (the hm read policy allows reading your own rows)
   const { data: mem } = await supabase
     .from('household_members').select('household_id').eq('user_id', userId).limit(1)
   if (mem && mem.length) return mem[0].household_id
-  // Create a new household + membership
-  const { data: hh, error } = await supabase
-    .from('households').insert({ name: (displayName || 'My') + ' family' }).select().single()
-  if (error) return null
-  await supabase.from('household_members').insert({ household_id: hh.id, user_id: userId, role: 'parent' })
-  return hh.id
+
+  // Create a brand-new household with an id we generate here.
+  const hhId = (crypto.randomUUID && crypto.randomUUID()) ||
+    ('hh-' + Date.now() + '-' + Math.random().toString(36).slice(2))
+  const { error: e1 } = await supabase.from('households')
+    .insert({ id: hhId, name: (displayName || 'My') + ' family' })
+  if (e1) return null
+  const { error: e2 } = await supabase.from('household_members')
+    .insert({ household_id: hhId, user_id: userId, role: 'parent' })
+  if (e2) return null
+  return hhId
 }
 
 export async function getHousehold(userId) {
