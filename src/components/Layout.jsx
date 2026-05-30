@@ -18,7 +18,7 @@ const styles = {
   body: { display: 'flex', flex: 1 },
   sidebar: {
     width: 210, background: '#fff', borderRight: '0.5px solid #E4E4E0',
-    padding: '16px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4
+    padding: '16px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2
   },
   sectionLabel: {
     fontSize: 10, fontWeight: 500, textTransform: 'uppercase',
@@ -28,16 +28,12 @@ const styles = {
     display: 'flex', alignItems: 'center', gap: 8,
     padding: '7px 10px', borderRadius: 6, fontSize: 13,
     color: '#6B6B68', cursor: 'pointer', border: 'none', background: 'none',
-    width: '100%', textAlign: 'left', transition: 'background 0.1s'
+    width: '100%', textAlign: 'left'
   },
   main: { flex: 1, padding: '28px 32px', overflowY: 'auto' },
-  addBtn: {
-    display: 'flex', alignItems: 'center', gap: 6,
-    padding: '7px 10px', borderRadius: 6, fontSize: 13,
-    color: '#1D9E75', cursor: 'pointer', border: 'none', background: 'none',
-    width: '100%', marginTop: 4
-  }
 }
+
+const AVATARS = ['👦', '👧', '🧒', '👨', '👩', '🧑']
 
 export default function Layout() {
   const [profiles, setProfiles] = useState([])
@@ -49,6 +45,9 @@ export default function Layout() {
       .catch(() => setProfiles([]))
   }, [])
 
+  const activeStyle = { background: '#E1F5EE', color: '#0F6E56', fontWeight: 500 }
+  const inactiveStyle = {}
+
   return (
     <div style={styles.app}>
       <div style={styles.topbar}>
@@ -56,43 +55,39 @@ export default function Layout() {
           <div style={styles.logoIcon}>🛡</div>
           Guardly
         </div>
-        <span style={{ fontSize: 12, color: '#9B9B97' }}>Family safety dashboard</span>
+        <span style={{ fontSize: 12, color: '#9B9B97' }}>Family safety</span>
       </div>
       <div style={styles.body}>
         <div style={styles.sidebar}>
           <div style={styles.sectionLabel}>Overview</div>
           <NavLink to="/" end style={({ isActive }) => ({
-            ...styles.navItem,
-            background: isActive ? '#E1F5EE' : 'none',
-            color: isActive ? '#0F6E56' : '#6B6B68',
-            fontWeight: isActive ? 500 : 400
+            ...styles.navItem, ...(isActive ? activeStyle : inactiveStyle)
           })}>
             🏠 Dashboard
           </NavLink>
 
-          <div style={{ ...styles.sectionLabel, marginTop: 8 }}>Profiles</div>
-          {profiles.map(p => (
+          <div style={{ ...styles.sectionLabel, marginTop: 8 }}>Children</div>
+          {profiles.map((p, i) => (
             <NavLink key={p.id} to={`/profile/${p.id}`} style={({ isActive }) => ({
-              ...styles.navItem,
-              background: isActive ? '#E1F5EE' : 'none',
-              color: isActive ? '#0F6E56' : '#6B6B68',
-              fontWeight: isActive ? 500 : 400
+              ...styles.navItem, ...(isActive ? activeStyle : inactiveStyle)
             })}>
-              👤 {p.name || p.id}
+              {AVATARS[i % AVATARS.length]} {p.name || 'Child ' + (i + 1)}
             </NavLink>
           ))}
-          <button style={styles.addBtn} onClick={() => navigate('/')}>
-            + Add profile
+          <button style={{ ...styles.navItem, color: '#1D9E75', marginTop: 2 }}
+            onClick={() => navigate('/')}>
+            + Add child
           </button>
 
           <div style={{ flex: 1 }} />
-          <NavLink to="/settings" style={({ isActive }) => ({
-            ...styles.navItem,
-            background: isActive ? '#E1F5EE' : 'none',
-            color: isActive ? '#0F6E56' : '#6B6B68'
-          })}>
-            ⚙️ Settings
-          </NavLink>
+
+          <div style={{ borderTop: '0.5px solid #E4E4E0', paddingTop: 8, marginTop: 8 }}>
+            <NavLink to="/settings" style={({ isActive }) => ({
+              ...styles.navItem, ...(isActive ? activeStyle : inactiveStyle)
+            })}>
+              ⚙️ Settings
+            </NavLink>
+          </div>
         </div>
         <main style={styles.main}>
           <Outlet />
