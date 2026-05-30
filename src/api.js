@@ -20,6 +20,7 @@ async function request(path, options = {}) {
 export const getProfiles = () => request('/profiles')
 export const createProfile = (data) => request('/profiles', { method: 'POST', body: JSON.stringify(data) })
 export const deleteProfile = (id) => request(`/profiles/${id}`, { method: 'DELETE' })
+export const updateProfile = (id, data) => request(`/profiles/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
 
 // Profile sections
 export const getProfileSection = (id, section) =>
