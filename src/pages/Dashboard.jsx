@@ -92,11 +92,28 @@ export default function Dashboard() {
   }
 
   async function handleDelete(id) {
+    setError(null)
     try {
+      // Delete the NextDNS profile FIRST. If this fails, we abort and leave
+      // everything intact — no partial state, no orphans.
       await deleteProfile(id)
+    } catch (e) {
+      setError('Could not remove this child right now. Nothing was changed — please try again. (' + e.message + ')')
+      return
+    }
+    // NextDNS profile is gone — now remove the household link and its devices.
+    // (unlinkProfileForUser removes both the household_profiles row and the
+    // devices rows for this profile.)
+    try {
       if (auth?.user) await unlinkProfileForUser(auth.user.id, id)
-      setProfiles(profiles.filter(p => p.id !== id)); ctx?.reloadProfiles?.()
-    } catch (e) { setError('Could not delete profile: ' + e.message) }
+    } catch (e) {
+      // The profile is gone but the link cleanup hiccupped — surface it so the
+      // dashboard can be refreshed rather than silently leaving a stale link.
+      setError('Child removed, but tidying up took a moment. Refresh if it still shows.')
+    }
+    setProfiles(profiles.filter(p => p.id !== id))
+    setDevicesByProfile(prev => { const c = { ...prev }; delete c[id]; return c })
+    ctx?.reloadProfiles?.()
   }
 
   return (
