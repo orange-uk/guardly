@@ -20,7 +20,7 @@ const CATEGORIES = [
   { id: 'piracy', label: 'Piracy', desc: 'Torrent & piracy', icon: '🏴‍☠️' },
   { id: 'social-networks', label: 'Social media', desc: 'Instagram, TikTok, X & more', icon: '📱' },
   { id: 'video-streaming', label: 'Video streaming', desc: 'YouTube, Netflix & more', icon: '📺' },
-  { id: 'online-gaming', label: 'Online gaming', desc: 'Games & gaming networks', icon: '🎮' },
+  { id: 'gaming', label: 'Online gaming', desc: 'Games & gaming networks', icon: '🎮' },
 ]
 
 const SERVICES = [
