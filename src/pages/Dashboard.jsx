@@ -103,7 +103,7 @@ export default function Dashboard() {
       const result = await createProfile({ name: newName.trim() })
       setNewName('')
       await loadProfiles()
-      if (result.data?.id) navigate(`/profile/${result.data.id}`)
+      if (result.data?.id) navigate(`/app/profile/${result.data.id}`)
     } catch (e) {
       setError('Could not create profile: ' + e.message)
     } finally {
@@ -150,7 +150,7 @@ export default function Dashboard() {
                 profile={p}
                 index={i}
                 onDelete={handleDelete}
-                onClick={() => navigate(`/profile/${p.id}`)}
+                onClick={() => navigate(`/app/profile/${p.id}`)}
               />
             ))}
 
