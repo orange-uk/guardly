@@ -75,6 +75,7 @@ export default function ProfilePage() {
     setError(null); setEditing(false)
     setName(''); setDevice(''); setSearch(''); setDeviceList([])
     setSchedDays([])
+    setSafeSearch(false); setYoutubeRestricted(false)
     loadAll()
     loadDevices()
   }, [profileId])
@@ -106,6 +107,8 @@ export default function ProfilePage() {
       const pc = pcR.value
       const cats = {}; (pc.data?.categories || []).forEach(c => cats[c.id] = true); setCategories(cats)
       const svcs = {}; (pc.data?.services || []).forEach(s => svcs[s.id] = true); setServices(svcs)
+      setSafeSearch(!!pc.data?.safeSearch)
+      setYoutubeRestricted(!!pc.data?.youtubeRestrictedMode)
     }
     if (denyR.status === 'fulfilled') {
       const dl = denyR.value.data || []
@@ -127,6 +130,9 @@ export default function ProfilePage() {
     setLoading(false)
   }
   const [loading, setLoading] = useState(true)
+  const [safeSearch, setSafeSearch] = useState(false)
+  const [youtubeRestricted, setYoutubeRestricted] = useState(false)
+  const [savingSafe, setSavingSafe] = useState(null)
   const [denyInput, setDenyInput] = useState('')
   const [allowInput, setAllowInput] = useState('')
   const [saving, setSaving] = useState(null)
@@ -183,6 +189,16 @@ export default function ProfilePage() {
     if (!editName.trim()) return
     try { await updateProfile(profileId, { name: editName.trim() }); setName(editName.trim()); setEditing(false) }
     catch { setError('Could not save name.') }
+  }
+  async function toggleSafeSearch() {
+    const v = !safeSearch; setSafeSearch(v); setSavingSafe('safe')
+    try { await updateProfileSection(profileId, 'parentalControl', { safeSearch: v }) }
+    catch { setSafeSearch(!v); setError('Could not save.') } finally { setSavingSafe(null) }
+  }
+  async function toggleYoutube() {
+    const v = !youtubeRestricted; setYoutubeRestricted(v); setSavingSafe('yt')
+    try { await updateProfileSection(profileId, 'parentalControl', { youtubeRestrictedMode: v }) }
+    catch { setYoutubeRestricted(!v); setError('Could not save.') } finally { setSavingSafe(null) }
   }
   async function saveScheduleNow() {
     setSchedSaving(true); setSchedSaved(false)
@@ -258,7 +274,7 @@ export default function ProfilePage() {
         {tab_('filters','Categories')}
         {tab_('services','Apps & sites', blockedSvc)}
         {tab_('devices','Devices', deviceList.length)}
-        {tab_('schedule','Time limits')}
+        {tab_('schedule','Recreation time')}
         {tab_('deny','Block list')}
         {tab_('allow','Allow list')}
         {tab_('activity','Activity')}
@@ -267,6 +283,30 @@ export default function ProfilePage() {
       {loading ? <p style={{ color: '#9AA39D' }}>Loading…</p> : (
         <>
           {tab === 'filters' && (
+            <>
+            <Card>
+              <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 4 }}>Safe browsing</h2>
+              <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 16 }}>Force safe modes on search and YouTube, even if the child turns them off themselves.</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px', borderRadius: 14, border: '1px solid ' + (safeSearch ? '#A9DCC2' : '#EAE5DA'), background: safeSearch ? '#E8F5EE' : '#fff', marginBottom: 10 }}>
+                <span style={{ fontSize: 21 }}>🔍</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>SafeSearch</div>
+                  <div style={{ fontSize: 12, color: '#9AA39D' }}>Filters explicit results on Google, Bing &amp; more</div>
+                </div>
+                <Toggle on={safeSearch} busy={savingSafe === 'safe'} onClick={toggleSafeSearch} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px', borderRadius: 14, border: '1px solid ' + (youtubeRestricted ? '#A9DCC2' : '#EAE5DA'), background: youtubeRestricted ? '#E8F5EE' : '#fff' }}>
+                <span style={{ fontSize: 21 }}>▶️</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>YouTube Restricted Mode</div>
+                  <div style={{ fontSize: 12, color: '#9AA39D' }}>Hides mature videos on YouTube</div>
+                </div>
+                <Toggle on={youtubeRestricted} busy={savingSafe === 'yt'} onClick={toggleYoutube} />
+              </div>
+              {youtubeRestricted && (
+                <p style={{ fontSize: 12, color: '#9AA39D', marginTop: 10 }}>Note: YouTube also hides comments and watch history while Restricted Mode is on — that's YouTube's own behaviour.</p>
+              )}
+            </Card>
             <Card>
               <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 4 }}>Content categories</h2>
               <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 16 }}>Block whole categories with one tap.</p>
@@ -286,6 +326,7 @@ export default function ProfilePage() {
                 })}
               </div>
             </Card>
+            </>
           )}
 
           {tab === 'services' && (
@@ -343,8 +384,8 @@ export default function ProfilePage() {
 
           {tab === 'schedule' && (
             <Card>
-              <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 4 }}>Time limits & downtime</h2>
-              <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 18 }}>Block the internet during set hours — perfect for bedtime, homework or school.</p>
+              <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 4 }}>Recreation time</h2>
+              <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 18 }}>Set the daily window when the apps you've blocked are <strong>allowed</strong>. Outside this window they stay blocked. Great for "social media only after 4pm".</p>
               <div style={{ marginBottom: 18 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#5B655F', marginBottom: 8 }}>Apply on these days</div>
                 <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
@@ -361,7 +402,7 @@ export default function ProfilePage() {
               </div>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#5B655F', marginBottom: 6 }}>Block from</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#5B655F', marginBottom: 6 }}>Allowed from</div>
                   <input type="time" className="gx-input" value={schedFrom} onChange={e => setSchedFrom(e.target.value)} style={{ width: 140 }} />
                 </div>
                 <div>
@@ -371,13 +412,13 @@ export default function ProfilePage() {
               </div>
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                 <button onClick={saveScheduleNow} disabled={schedSaving || !schedDays.length} className="gx-btn" style={{ opacity: (schedSaving || !schedDays.length) ? 0.6 : 1 }}>
-                  {schedSaving ? 'Saving…' : 'Save schedule'}
+                  {schedSaving ? 'Saving…' : 'Save recreation time'}
                 </button>
                 {schedSaved && <span style={{ fontSize: 13, color: '#1F9D6B', fontWeight: 600 }}>✓ Saved</span>}
                 {!schedDays.length && <span style={{ fontSize: 13, color: '#9AA39D' }}>Pick at least one day</span>}
               </div>
               <div style={{ marginTop: 18, padding: '12px 16px', background: '#F7F4ED', borderRadius: 12, fontSize: 13, color: '#5B655F' }}>
-                💡 Common setups: bedtime 9pm–7am every day, or homework time 4pm–6pm on weekdays.
+                💡 The apps allowed during recreation time are the ones you've blocked under Categories and Apps &amp; sites. One window per day is supported.
               </div>
             </Card>
           )}

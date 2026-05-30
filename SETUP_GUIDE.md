@@ -207,3 +207,18 @@ These exist as NextDNS profiles but aren't linked to anyone. After deploying, yo
 dashboard will show NONE of them (correct — they're unowned). Cleanest path: delete
 the test ones from the NextDNS dashboard, then re-add your real children through the
 Guardly app, which will link them to your household properly.
+
+## Latest batch (this zip)
+- **Robust delete**: removing a child now deletes the NextDNS profile first; if that
+  fails nothing else changes (no orphans). Only on success are the household link and
+  device records removed.
+- **Pause removed**: NextDNS has no pause capability, so the button (which never
+  worked) is gone, along with its endpoint.
+- **Safe browsing** (top of a child's Categories tab): SafeSearch + YouTube Restricted
+  Mode toggles — both real NextDNS settings. (YouTube also hides comments/history when
+  on — that's YouTube's own behaviour.)
+- **Recreation time** (renamed from Time limits): set the daily window when blocked
+  apps are *allowed*; outside it they stay blocked. One window per day (NextDNS limit).
+- **Install link fix**: the install page now generates the .mobileconfig itself, so
+  it works for any child. Profiles are unsigned (normal "Unverified" notice on install).
+No new SQL or env vars for this batch.
