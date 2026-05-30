@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const FONT_D = "'Fraunces', Georgia, serif"
 
@@ -124,9 +124,15 @@ function Accordion({ section, open, onToggle }) {
 export default function SecurityPage() {
   const [open, setOpen] = useState(0)
   const navigate = useNavigate()
+  const location = useLocation()
+  const inApp = location.pathname.startsWith('/app')
 
   return (
-    <div className="fade-up" style={{ maxWidth: 760, margin: '0 auto' }}>
+    <div className="fade-up" style={{ maxWidth: 760, margin: '0 auto', padding: inApp ? 0 : '28px 20px 48px' }}>
+      <button onClick={() => navigate(inApp ? '/app' : '/')}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 14, color: '#5B655F', fontWeight: 600, marginBottom: 18, padding: '6px 0' }}>
+        ← {inApp ? 'Back to dashboard' : 'Back to Guardly'}
+      </button>
       <div style={{ position: 'relative', borderRadius: 24, overflow: 'hidden', marginBottom: 24, background: 'linear-gradient(135deg, #EAF6EF 0%, #FBF4E6 60%, #FCEFE8 100%)', border: '1px solid #EAE5DA', padding: '32px' }}>
         <div style={{ position: 'absolute', right: -30, top: -30, width: 150, height: 150, borderRadius: '50%', background: '#1F9D6B', opacity: 0.06 }} />
         <div style={{ position: 'relative' }}>

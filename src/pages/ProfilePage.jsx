@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import {
-  getProfileSection, updateProfileSection, addToList,
+  getProfileSection, updateProfileSection, addToList, verifyProfile,
   getLogs, getAnalytics, updateSchedule
 } from '../api'
 import { friendlyDomain, groupActivity } from '../lib/friendlyDomains'
@@ -53,6 +53,50 @@ function Card({ children, style }) {
   return <div className="gx-card" style={{ padding: 22, marginBottom: 14, ...style }}>{children}</div>
 }
 
+function timeAgo(ts) {
+  if (!ts) return ''
+  const mins = Math.floor((Date.now() - new Date(ts).getTime()) / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins} min ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs} hour${hrs > 1 ? 's' : ''} ago`
+  const days = Math.floor(hrs / 24)
+  return `${days} day${days > 1 ? 's' : ''} ago`
+}
+
+function ProtectionResult({ verify, name, onClose, navigate, profileId }) {
+  const active = verify.active
+  return (
+    <div style={{ borderRadius: 16, padding: '16px 18px', marginBottom: 16, position: 'relative',
+      background: active ? '#EAF6F0' : '#FBF1DD', border: '1px solid ' + (active ? '#C2E6D5' : '#E8CE93') }}>
+      <button onClick={onClose} style={{ position: 'absolute', top: 12, right: 14, color: '#9AA39D', fontSize: 15 }}>✕</button>
+      {active ? (
+        <>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#177A53', marginBottom: 4 }}>✓ Protection is active</div>
+          <div style={{ fontSize: 13.5, color: '#3F7A63', lineHeight: 1.55 }}>
+            {name} is connected and filtering — last activity {timeAgo(verify.lastSeen)}.
+            {verify.devices && verify.devices.length > 0 && (
+              <span> Recently seen: {verify.devices.slice(0, 4).map(d => d.name).join(', ')}.</span>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#9A6B12', marginBottom: 4 }}>No recent activity</div>
+          <div style={{ fontSize: 13.5, color: '#9A6B12', lineHeight: 1.55 }}>
+            {verify.error
+              ? "Couldn't check just now — please try again in a moment."
+              : `We haven't seen activity from ${name}'s device recently. That can simply mean the device has been idle or asleep. If it's been used recently, open any website on it and check again. If it stays quiet, `}
+            {!verify.error && (
+              <button onClick={() => navigate(`/app/profile/${profileId}/install`)} style={{ color: '#1F9D6B', fontWeight: 600 }}>re-check the install steps</button>
+            )}{!verify.error && '.'}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function ProfilePage() {
   const { profileId } = useParams()
   const navigate = useNavigate()
@@ -78,6 +122,7 @@ export default function ProfilePage() {
     setName(''); setDevice(''); setSearch(''); setDeviceList([])
     setSchedDays([])
     setSafeSearch(false); setYoutubeRestricted(false)
+    setVerify(null)
     loadAll()
     loadDevices()
   }, [profileId])
@@ -133,6 +178,14 @@ export default function ProfilePage() {
   const [safeSearch, setSafeSearch] = useState(false)
   const [youtubeRestricted, setYoutubeRestricted] = useState(false)
   const [savingSafe, setSavingSafe] = useState(null)
+  const [verify, setVerify] = useState(null)      // null | 'checking' | result object
+  async function checkProtection() {
+    setVerify('checking')
+    try {
+      const r = await verifyProfile(profileId)
+      setVerify(r || { active: false })
+    } catch { setVerify({ active: false, error: true }) }
+  }
   const [denyInput, setDenyInput] = useState('')
   const [allowInput, setAllowInput] = useState('')
   const [saving, setSaving] = useState(null)
@@ -273,9 +326,16 @@ export default function ProfilePage() {
           )}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={checkProtection} className="gx-btn-ghost" style={{ padding: '10px 16px', fontSize: 14 }}>
+            {verify === 'checking' ? 'Checking…' : '🛡️ Check protection'}
+          </button>
           <button onClick={() => navigate(`/app/profile/${profileId}/install`)} className="gx-btn" style={{ padding: '10px 18px', fontSize: 14 }}>＋ Add device</button>
         </div>
       </div>
+
+      {verify && verify !== 'checking' && (
+        <ProtectionResult verify={verify} name={name} onClose={() => setVerify(null)} navigate={navigate} profileId={profileId} />
+      )}
 
       {error && (
         <div className="gx-card" style={{ background: '#FBEAE8', borderColor: '#E9B5AF', padding: '12px 18px', marginBottom: 14 }}>

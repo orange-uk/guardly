@@ -366,3 +366,21 @@ The Apple lockdown steps are verified against Apple's docs. The Android / Chrome
 Windows guidance is sound general advice but written from general platform knowledge —
 worth a quick sanity-check against each platform's current setup flow before relying on
 it publicly, as menu names shift. Claims are hedged so nothing is overstated.
+
+## Batch — verify protection + security back link
+No new SQL or env vars (verify uses the existing NEXTDNS_API_KEY).
+
+### What's in this batch
+- **Check protection**: each child's page has a "🛡️ Check protection" button. It queries
+  the profile's recent DNS activity via a new endpoint (functions/api/verify/[profileId].js).
+  - Recent activity → green "✓ Protection is active — last activity X ago", lists devices seen.
+  - No recent activity → calm amber note (device may be idle/asleep), never a false alarm.
+  - Depends on NextDNS logs being on (the default). If a parent disables logs for privacy,
+    the check can't see activity — known limitation.
+- **Security page back link**: the "How secure is Guardly?" page now has a context-aware
+  back link ("Back to dashboard" in-app, "Back to Guardly" on the public /security page),
+  so it's no longer a dead end.
+
+### Test on a real device
+Open a website on a protected device, then hit "Check protection" — it should show green
+with a recent timestamp. That confirms the log shape matches what the code parses.

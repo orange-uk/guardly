@@ -40,3 +40,5 @@ export const updateSchedule = (id, recreation) =>
 // Analytics
 export const getLogs = (profileId) => request(`/analytics/${profileId}?type=logs`)
 export const getAnalytics = (profileId, kind) => request(`/analytics/${profileId}?type=${kind}`)
+// Confirms a profile is live by checking recent DNS activity.
+export const verifyProfile = (profileId) => request(`/verify/${profileId}`)
