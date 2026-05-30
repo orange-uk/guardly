@@ -54,9 +54,12 @@ function Step1({ onNext }) {
     if (!name.trim() || !age) return
     setBusy(true); setErr(null)
     try {
-      const r = await createProfile({ name: name.trim() })
+      // Engine gets a unique code; the human name lives in our database.
+      const code = 'gdly-' + Math.random().toString(36).slice(2, 8)
+      const r = await createProfile({ name: code })
       const id = r.data?.id
-      if (auth?.user && id) await linkProfileToUser(auth.user.id, id)
+      if (!id) throw new Error('no id')
+      if (auth?.user) await linkProfileToUser(auth.user.id, id, name.trim())
       onNext({ profileId: id, childName: name.trim() })
     } catch (e) { setErr('Could not create profile.'); setBusy(false) }
   }

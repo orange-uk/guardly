@@ -33,16 +33,20 @@ export default function Layout() {
   const auth = useAuth()
   const { canInstall, promptInstall } = useInstallPrompt()
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [auth?.user?.id])
 
   async function load() {
     try {
       let list = []
       if (auth?.user) {
         list = (await getOwnedProfiles(auth.user.id)) || []
-      } else {
+      } else if (auth && !auth.loading && !auth.user) {
+        // Genuinely logged out / no auth: fall back to engine list (dev mode).
         const data = await getProfiles()
         list = (data.data || []).map(p => ({ profile_id: p.id, name: (p.name || '').split(' | ')[0] }))
+      } else {
+        // Auth still resolving — don't guess names yet.
+        return
       }
       setProfiles(list)
     } catch (e) { setProfiles([]) }

@@ -43,6 +43,16 @@ export function deviceSteps(id, configUrl, dotHost, deviceName) {
           'Tap the Guardly profile → Install',
           'Enter the device passcode to confirm',
         ],
+        lockdown: {
+          intro: "Without this step, a child can simply delete the Guardly profile and remove all protection. To stop that, lock the device so the profile can't be removed:",
+          steps: [
+            'Make sure the device is signed in with your child\'s own (child) Apple ID — set up through Family Sharing, not your adult account.',
+            'On the device: Settings → Screen Time → turn it on and set a Screen Time passcode only you know (different from the unlock code).',
+            'Go to Screen Time → Content & Privacy Restrictions → turn it on.',
+            'Under "Allow Changes To", tap Accounts → set to Don\'t Allow.',
+            'This greys out the Apple ID and blocks profile removal — now the child can\'t delete Guardly without your Screen Time passcode.',
+          ],
+        },
       }
     case 'mac':
       return {

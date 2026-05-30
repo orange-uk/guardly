@@ -86,6 +86,15 @@ export default function InstallPage() {
         {info.warn && (
           <div style={{ marginTop: 16, padding: '12px 16px', background: '#FBF1DD', borderRadius: 12, fontSize: 13, color: '#9A6B12' }}>⚠️ {info.warn}</div>
         )}
+        {info.lockdown && (
+          <div style={{ marginTop: 16, padding: '14px 16px', background: '#EAF6F0', borderRadius: 12, border: '1px solid #C2E6D5' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#177A53', marginBottom: 6 }}>🔒 Make it tamper-proof (recommended)</div>
+            <div style={{ fontSize: 13, color: '#3F7A63', lineHeight: 1.6 }}>{info.lockdown.intro}</div>
+            <ol style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 13, color: '#3F7A63', lineHeight: 1.7 }}>
+              {info.lockdown.steps.map((s, i) => <li key={i}>{s}</li>)}
+            </ol>
+          </div>
+        )}
       </div>
 
       <button onClick={saveDevice} disabled={!deviceName.trim() || saved} className="gx-btn" style={{ width: '100%', opacity: (!deviceName.trim() || saved) ? 0.6 : 1 }}>

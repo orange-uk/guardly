@@ -59,6 +59,8 @@ export default function ProfilePage() {
   const [tab, setTab] = useState('filters')
   const [categories, setCategories] = useState({})
   const [services, setServices] = useState({})
+  const [catRec, setCatRec] = useState({})
+  const [svcRec, setSvcRec] = useState({})
   const [denylist, setDenylist] = useState([])
   const [allowlist, setAllowlist] = useState([])
   const [logs, setLogs] = useState([])
@@ -69,7 +71,7 @@ export default function ProfilePage() {
     // Reset everything when switching to a different child so one profile's
     // data never bleeds into another's view.
     setTab('filters')
-    setCategories({}); setServices({}); setDenylist([]); setAllowlist([])
+    setCategories({}); setServices({}); setCatRec({}); setSvcRec({}); setDenylist([]); setAllowlist([])
     setLogs([]); setActivityRows([]); setTopBlocked([])
     setError(null); setEditing(false)
     setName(''); setDevice(''); setSearch(''); setDeviceList([])
@@ -104,8 +106,8 @@ export default function ProfilePage() {
 
     if (pcR.status === 'fulfilled') {
       const pc = pcR.value
-      const cats = {}; (pc.data?.categories || []).forEach(c => cats[c.id] = true); setCategories(cats)
-      const svcs = {}; (pc.data?.services || []).forEach(s => svcs[s.id] = true); setServices(svcs)
+      const cats = {}; const cr = {}; (pc.data?.categories || []).forEach(c => { cats[c.id] = c.active !== false; cr[c.id] = !!c.recreation }); setCategories(cats); setCatRec(cr)
+      const svcs = {}; const sr = {}; (pc.data?.services || []).forEach(s => { svcs[s.id] = s.active !== false; sr[s.id] = !!s.recreation }); setServices(svcs); setSvcRec(sr)
       setSafeSearch(!!pc.data?.safeSearch)
       setYoutubeRestricted(!!pc.data?.youtubeRestrictedMode)
     }
@@ -160,19 +162,28 @@ export default function ProfilePage() {
     } catch (e) { setLogs([]); setActivityRows([]); setTopBlocked([]) }
   }
 
-  async function save(cats, svcs) {
+  async function save(cats, svcs, cr, sr) {
+    const _cr = cr || catRec, _sr = sr || svcRec
     await updateProfileSection(profileId, 'parentalControl', {
-      categories: Object.entries(cats).filter(([,v]) => v).map(([k]) => ({ id: k, active: true })),
-      services: Object.entries(svcs).filter(([,v]) => v).map(([k]) => ({ id: k, active: true })),
+      categories: Object.entries(cats).filter(([,v]) => v).map(([k]) => ({ id: k, active: true, recreation: !!_cr[k] })),
+      services: Object.entries(svcs).filter(([,v]) => v).map(([k]) => ({ id: k, active: true, recreation: !!_sr[k] })),
     })
   }
   async function toggleCat(id) {
     const u = { ...categories, [id]: !categories[id] }; setCategories(u); setSaving(id)
-    try { await save(u, services) } catch { setCategories(categories); setError('Could not save.') } finally { setSaving(null) }
+    try { await save(u, services, catRec, svcRec) } catch { setCategories(categories); setError('Could not save.') } finally { setSaving(null) }
+  }
+  async function toggleCatRec(id) {
+    const u = { ...catRec, [id]: !catRec[id] }; setCatRec(u); setSaving(id)
+    try { await save(categories, services, u, svcRec) } catch { setCatRec(catRec); setError('Could not save.') } finally { setSaving(null) }
   }
   async function toggleSvc(id) {
     const u = { ...services, [id]: !services[id] }; setServices(u); setSaving(id)
-    try { await save(categories, u) } catch { setServices(services); setError('Could not save.') } finally { setSaving(null) }
+    try { await save(categories, u, catRec, svcRec) } catch { setServices(services); setError('Could not save.') } finally { setSaving(null) }
+  }
+  async function toggleSvcRec(id) {
+    const u = { ...svcRec, [id]: !svcRec[id] }; setSvcRec(u); setSaving(id)
+    try { await save(categories, services, catRec, u) } catch { setSvcRec(svcRec); setError('Could not save.') } finally { setSaving(null) }
   }
   async function addDomain(type) {
     const val = (type === 'deny' ? denyInput : allowInput).trim(); if (!val) return
@@ -202,15 +213,17 @@ export default function ProfilePage() {
   async function saveScheduleNow() {
     setSchedSaving(true); setSchedSaved(false)
     try {
-      // Map to engine recreation format: block during the window on chosen days
+      // Recreation format (verified against the live API): each day is a single
+      // { start, end } object, plus a timezone. Times are on the half-hour, up
+      // to 23:30. One window per day (a NextDNS limitation).
       const times = {}
       const dayMap = { MO:'monday',TU:'tuesday',WE:'wednesday',TH:'thursday',FR:'friday',SA:'saturday',SU:'sunday' }
-      Object.values(dayMap).forEach(d => { times[d] = [] })
       schedDays.forEach(code => {
         const day = dayMap[code]
-        times[day] = [{ start: schedFrom, end: schedTo }]
+        times[day] = { start: schedFrom, end: schedTo }
       })
-      await updateSchedule(profileId, { times })
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/London'
+      await updateSchedule(profileId, { times, timezone })
       setSchedSaved(true); setTimeout(() => setSchedSaved(false), 2500)
     } catch (e) { setError('Could not save schedule.') } finally { setSchedSaving(false) }
   }
@@ -312,14 +325,24 @@ export default function ProfilePage() {
               <div className="gx-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {CATEGORIES.map(c => {
                   const on = !!categories[c.id]
+                  const rec = !!catRec[c.id]
                   return (
-                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px', borderRadius: 14, border: '1px solid ' + (on ? '#A9DCC2' : '#EAE5DA'), background: on ? '#E8F5EE' : '#fff', transition: 'all 0.15s' }}>
-                      <span style={{ fontSize: 21 }}>{c.icon}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600 }}>{c.label}</div>
-                        <div style={{ fontSize: 12, color: '#9AA39D' }}>{c.desc}</div>
+                    <div key={c.id} style={{ borderRadius: 14, border: '1px solid ' + (on ? '#A9DCC2' : '#EAE5DA'), background: on ? '#E8F5EE' : '#fff', transition: 'all 0.15s', overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px' }}>
+                        <span style={{ fontSize: 21 }}>{c.icon}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600 }}>{c.label}</div>
+                          <div style={{ fontSize: 12, color: '#9AA39D' }}>{c.desc}</div>
+                        </div>
+                        <Toggle on={on} busy={saving === c.id} onClick={() => toggleCat(c.id)} />
                       </div>
-                      <Toggle on={on} busy={saving === c.id} onClick={() => toggleCat(c.id)} />
+                      {on && (
+                        <button onClick={() => toggleCatRec(c.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 15px', borderTop: '1px solid #CFE9DB', background: rec ? '#D9F0E4' : 'transparent', fontSize: 12, color: rec ? '#177A53' : '#7A857E', textAlign: 'left' }}>
+                          <span>{rec ? '🎮' : '🔒'}</span>
+                          <span style={{ flex: 1 }}>{rec ? 'Allowed during recreation time' : 'Blocked at all times'}</span>
+                          <span style={{ fontSize: 11, fontWeight: 600 }}>{rec ? 'tap to always block' : 'tap to allow in recreation'}</span>
+                        </button>
+                      )}
                     </div>
                   )
                 })}
@@ -341,11 +364,20 @@ export default function ProfilePage() {
                   <div className="gx-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     {g.items.map(([id, label, icon]) => {
                       const on = !!services[id]
+                      const rec = !!svcRec[id]
                       return (
-                        <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', borderRadius: 12, border: '1px solid ' + (on ? '#E9B5AF' : '#EAE5DA'), background: on ? '#FBEAE8' : '#fff', transition: 'all 0.15s' }}>
-                          <span style={{ fontSize: 18 }}>{icon}</span>
-                          <span style={{ flex: 1, fontSize: 14, fontWeight: on ? 600 : 500 }}>{label}</span>
-                          <Toggle on={on} busy={saving === id} onClick={() => toggleSvc(id)} />
+                        <div key={id} style={{ borderRadius: 12, border: '1px solid ' + (on ? '#E9B5AF' : '#EAE5DA'), background: on ? '#FBEAE8' : '#fff', transition: 'all 0.15s', overflow: 'hidden' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px' }}>
+                            <span style={{ fontSize: 18 }}>{icon}</span>
+                            <span style={{ flex: 1, fontSize: 14, fontWeight: on ? 600 : 500 }}>{label}</span>
+                            <Toggle on={on} busy={saving === id} onClick={() => toggleSvc(id)} />
+                          </div>
+                          {on && (
+                            <button onClick={() => toggleSvcRec(id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 13px', borderTop: '1px solid #F0CFCB', background: rec ? '#FBE3CF' : 'transparent', fontSize: 11.5, color: rec ? '#9A6B12' : '#A38882', textAlign: 'left' }}>
+                              <span>{rec ? '🎮' : '🔒'}</span>
+                              <span style={{ flex: 1 }}>{rec ? 'Allowed in recreation time' : 'Blocked always'}</span>
+                            </button>
+                          )}
                         </div>
                       )
                     })}
@@ -384,7 +416,7 @@ export default function ProfilePage() {
           {tab === 'schedule' && (
             <Card>
               <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 4 }}>Recreation time</h2>
-              <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 18 }}>Set the daily window when the apps you've blocked are <strong>allowed</strong>. Outside this window they stay blocked. Great for "social media only after 4pm".</p>
+              <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 18 }}>Set the daily window when "recreation" apps are <strong>allowed</strong>. Outside it they're blocked. Mark which apps count as recreation using the toggle under each blocked app in Categories and Apps &amp; sites — so you can let games through at set hours while keeping things like adult content blocked all day.</p>
               <div style={{ marginBottom: 18 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#5B655F', marginBottom: 8 }}>Apply on these days</div>
                 <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>

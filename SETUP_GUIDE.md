@@ -240,3 +240,49 @@ That's the only change needed. After deploying:
 Existing children created before this change will show their stored name, or
 "Child" if they predate the name column — easiest to delete old test ones in the
 engine dashboard and re-add through the app.
+
+## FINAL BATCH — full consolidated build
+This zip is the complete, audited app. Upload the entire contents and overwrite everything.
+
+### Required SQL (run once if you haven't already)
+```sql
+alter table household_profiles add column if not exists name text;
+```
+
+### What's in this build
+- **Names decoupled from the engine**: child names live in household_profiles.name;
+  the engine only gets a unique gdly-XXXXXX code. Duplicate names never clash;
+  rename is an instant DB update. Applies to BOTH the dashboard and onboarding.
+- **Sidebar name fix**: the sidebar now waits for login to resolve, then reads the
+  real name (no more "Child 1" mismatch).
+- **Categories**: corrected to the real NextDNS IDs (porn, gambling, dating, piracy,
+  social-networks, video-streaming, gaming). "Drugs" removed (not a real category).
+- **Safe browsing**: SafeSearch + YouTube Restricted Mode toggles (top of Categories).
+- **Recreation time (per-category, Option A)**: each blocked category/app has a
+  "Allowed during recreation time" toggle. Flagged items are allowed only during the
+  daily recreation window; everything else stays blocked 24/7. So you can allow games
+  4–6pm while keeping adult content blocked all day. Recreation format verified against
+  the live NextDNS API (per-day {start,end} + timezone). NextDNS limits: one window
+  per day, half-hour increments up to 23:30.
+- **Robust delete**: deletes the engine profile first; only then removes the DB link +
+  devices. No orphans.
+- **Pause removed**: the engine has no pause capability — button & endpoint gone, and
+  the landing page no longer advertises it.
+- **Apple tamper-proofing guidance**: the iPhone/iPad install page now explains, in
+  plain language, how to lock the device (child Apple ID + Screen Time → Content &
+  Privacy → Accounts → Don't Allow) so the profile can't be deleted.
+- **Install link**: generates the .mobileconfig itself (unsigned → normal "Unverified"
+  notice on install). Works for any child.
+
+### Optional repo cleanup (harmless if skipped)
+Delete these stale files from GitHub if still present:
+- functions/api/profiles/[profileId]/pause.js
+- functions/api/dns/ (whole folder, if present)
+
+### Test checklist after deploy
+1. Create a child (try a name that previously clashed — should work now).
+2. Add a device, install the profile on it.
+3. Toggle each category; confirm it flips in the NextDNS dashboard too.
+4. Flag one app as "recreation", set a window, test on-device in/out of the window.
+5. Two-account isolation: second signup should see zero children.
+6. iPhone: follow the tamper-proof steps; confirm the profile can't be removed.

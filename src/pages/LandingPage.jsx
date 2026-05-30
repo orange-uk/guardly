@@ -387,7 +387,7 @@ export default function LandingPage() {
               {[
                 ['🌍','Works on every network','Home Wi-Fi, mobile data, school, a friend\'s house — the same rules apply everywhere, automatically.'],
                 ['👻','Invisible & tamper-proof','No app icon to spot, nothing to uninstall. The profile is locked and can\'t be removed without your password.'],
-                ['⚡','Instant control','Block a new app, pause the internet at dinner, or set bedtime limits — changes take effect in seconds.'],
+                ['⚡','Instant control','Block a new app, force safe search, or set recreation hours — changes take effect in minutes.'],
                 ['🔋','Nothing running','No background app draining the battery or slowing the device down. It just quietly works.'],
               ].map(([icon, t, d]) => (
                 <div key={t} style={{ display: 'flex', gap: 16, padding: '18px 20px', background: 'rgba(255,255,255,0.07)', borderRadius: 16 }}>
@@ -410,9 +410,9 @@ export default function LandingPage() {
           {[
             ['🔞','Block adult content','Adult sites, gambling, dating and more — off with a single toggle.'],
             ['📱','Block specific apps','TikTok, Roblox, Snapchat, Instagram — block any app by name, instantly.'],
-            ['📺','Control streaming','Pause YouTube, Netflix or Twitch during homework and bedtime.'],
+            ['📺','Control streaming','Allow YouTube, Netflix or Twitch only during set recreation hours.'],
             ['⏰','Set time limits','Schedule downtime — block everything during school or after bedtime.'],
-            ['⏸','Pause the internet','One tap to pause a device at dinner or family time. Unpause when ready.'],
+            ['🎮','Recreation time','Set the daily window when fun apps are allowed — blocked outside it.'],
             ['📊','See the activity','A clear, readable log of what was visited and what was blocked.'],
             ['👨‍👩‍👧‍👦','One profile per child','Different rules for different ages, all from one dashboard.'],
             ['🔒','Locked & private','Tamper-proof profiles. Your family\'s data stays yours.'],
@@ -438,7 +438,7 @@ export default function LandingPage() {
               <span><span style={{ fontFamily: FONT_D, fontSize: 42, fontWeight: 600 }}>£3</span><span style={{ color: '#5B655F', fontSize: 15 }}>/mo</span></span>
             </div>
             <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 24 }}>Billed annually at £36/year · cancel anytime</p>
-            {['Unlimited children & devices','All content categories','App & site blocking','Time limits & schedules','Pause the internet anytime','Activity reports','iPhone, iPad, Mac, Android, Chromebook & Windows','Friendly email support'].map(f => (
+            {['Unlimited children & devices','All content categories','App & site blocking','Time limits & schedules','Safe search & YouTube restriction','Activity reports','iPhone, iPad, Mac, Android, Chromebook & Windows','Friendly email support'].map(f => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', fontSize: 14.5 }}>
                 <span style={{ color: '#1F9D6B', fontWeight: 700 }}>✓</span> {f}
               </div>
