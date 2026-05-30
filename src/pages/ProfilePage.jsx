@@ -200,7 +200,7 @@ export default function ProfilePage() {
       if (auth?.user) await renameProfileForUser(auth.user.id, profileId, editName.trim())
       setName(editName.trim()); setEditing(false)
       ctx?.reloadProfiles?.()
-    } catch { setError('Could not save name.') }
+    } catch (e) { setError(e.message || 'Could not save name.') }
   }
   async function toggleSafeSearch() {
     const v = !safeSearch; setSafeSearch(v); setSavingSafe('safe')

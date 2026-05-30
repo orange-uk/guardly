@@ -325,3 +325,24 @@ first_name/last_name metadata update — already done for the main account.)
   a warmer add-child card.
 
 No new SQL or env vars.
+
+## Batch — rename fix + polish
+### ⚠️ REQUIRED SQL (run once — fixes child renaming)
+household_profiles had no UPDATE policy, so renames were silently blocked by RLS.
+Run this in Supabase → SQL Editor:
+```sql
+create policy "hp update" on household_profiles for update
+  using (household_id in (select household_ids_for_current_user()))
+  with check (household_id in (select household_ids_for_current_user()));
+```
+
+### What's in this batch
+- **Rename actually works now**: with the policy above, renaming a child saves, the
+  sidebar updates instantly, and a refresh keeps the new name. The app now verifies the
+  write really happened (no more silent "looks saved but isn't").
+- **Device logos**: Apple split into "iPhone / iPad" (iOS) and "Mac" — five platforms
+  shown: iPhone/iPad, Mac, Android, Chromebook, Windows.
+- **Dashboard greeting** enlarged ("Hi <name>").
+- **Header tagline** restyled from italic serif to a clean uppercase kicker.
+
+No new env vars.

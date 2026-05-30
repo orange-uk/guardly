@@ -154,7 +154,7 @@ export default function Dashboard() {
         <div style={{ position: 'absolute', right: -30, top: -30, width: 150, height: 150, borderRadius: '50%', background: '#1F9D6B', opacity: 0.06 }} />
         <div style={{ position: 'absolute', right: 70, bottom: -50, width: 110, height: 110, borderRadius: '50%', background: '#E2A03F', opacity: 0.07 }} />
         <div style={{ position: 'relative' }}>
-          {firstName && <p style={{ color: '#177A53', fontSize: 14.5, fontWeight: 600, marginBottom: 4 }}>Hi {firstName} 👋</p>}
+          {firstName && <p style={{ color: '#177A53', fontSize: 17, fontWeight: 600, marginBottom: 6 }}>Hi {firstName} 👋</p>}
           <h1 style={{ fontFamily: FONT_D, fontSize: 32, fontWeight: 600, marginBottom: 6, letterSpacing: '-0.01em' }}>Your family</h1>
           <p style={{ color: '#5B655F', fontSize: 14.5, maxWidth: 460, lineHeight: 1.55 }}>Add each child, then the devices they use. Protection follows every device — at home, school, anywhere.</p>
           {!loading && profiles.length > 0 && (

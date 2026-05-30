@@ -123,7 +123,11 @@ export async function getHouseholdProfiles(householdId) {
 }
 export async function renameProfileInHousehold(householdId, profileId, name) {
   if (!isSupabaseConfigured() || !householdId) return
-  await supabase.from('household_profiles').update({ name }).eq('household_id', householdId).eq('profile_id', profileId)
+  const { data, error } = await supabase.from('household_profiles')
+    .update({ name }).eq('household_id', householdId).eq('profile_id', profileId)
+    .select('profile_id')
+  if (error) throw error
+  if (!data || !data.length) throw new Error('Rename did not save — you may not have permission to edit this child.')
 }
 export async function unlinkProfile(householdId, profileId) {
   if (!isSupabaseConfigured() || !householdId) return

@@ -116,8 +116,8 @@ export default function Layout() {
               ⬇ Install app
             </button>
           )}
-          <span className="gx-only-desktop" style={{ fontFamily: FONT_D, fontStyle: 'italic', fontSize: 15, color: '#1F9D6B', fontWeight: 500 }}>
-            Your family, safe online ✨
+          <span className="gx-only-desktop" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, color: '#9AA39D', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Your family, safe online
           </span>
         </div>
       </div>
