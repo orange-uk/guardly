@@ -60,7 +60,7 @@ export default function Layout() {
       <div style={styles.body}>
         <div style={styles.sidebar}>
           <div style={styles.sectionLabel}>Overview</div>
-          <NavLink to="/" end style={({ isActive }) => ({
+          <NavLink to="/app" end style={({ isActive }) => ({
             ...styles.navItem, ...(isActive ? activeStyle : inactiveStyle)
           })}>
             🏠 Dashboard
@@ -68,21 +68,21 @@ export default function Layout() {
 
           <div style={{ ...styles.sectionLabel, marginTop: 8 }}>Children</div>
           {profiles.map((p, i) => (
-            <NavLink key={p.id} to={`/profile/${p.id}`} style={({ isActive }) => ({
+            <NavLink key={p.id} to={`/app/profile/${p.id}`} style={({ isActive }) => ({
               ...styles.navItem, ...(isActive ? activeStyle : inactiveStyle)
             })}>
               {AVATARS[i % AVATARS.length]} {p.name || 'Child ' + (i + 1)}
             </NavLink>
           ))}
           <button style={{ ...styles.navItem, color: '#1D9E75', marginTop: 2 }}
-            onClick={() => navigate('/')}>
+            onClick={() => navigate('/app')}>
             + Add child
           </button>
 
           <div style={{ flex: 1 }} />
 
           <div style={{ borderTop: '0.5px solid #E4E4E0', paddingTop: 8, marginTop: 8 }}>
-            <NavLink to="/settings" style={({ isActive }) => ({
+            <NavLink to="/app/settings" style={({ isActive }) => ({
               ...styles.navItem, ...(isActive ? activeStyle : inactiveStyle)
             })}>
               ⚙️ Settings
