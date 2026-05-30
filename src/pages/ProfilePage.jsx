@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getProfileSection, updateProfileSection, addToList, getLogs, getProfiles } from '../api'
+import { getProfileSection, updateProfileSection, updateProfile, addToList, getLogs, getProfiles } from '../api'
 
 const card = {
   background: '#fff', border: '0.5px solid #E4E4E0',
@@ -173,7 +173,7 @@ export default function ProfilePage() {
     if (!editName.trim()) return
     const combined = editDevice.trim() ? editName.trim() + ' | ' + editDevice.trim() : editName.trim()
     try {
-      await updateProfileSection(profileId, '', { name: combined })
+      await updateProfile(profileId, { name: combined })
       setProfileName(editName.trim())
       setDeviceName(editDevice.trim())
       setEditing(false)
