@@ -10,28 +10,33 @@ export default function SettingsPage() {
     <div>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 20, fontWeight: 500, marginBottom: 4 }}>Settings</h1>
-        <p style={{ color: '#6B6B68', fontSize: 13 }}>Manage your Guardly account and configuration.</p>
+        <p style={{ color: '#6B6B68', fontSize: 13 }}>Manage your Guardly account.</p>
       </div>
 
       <div style={card}>
-        <h2 style={{ fontSize: 14, fontWeight: 500, marginBottom: 12 }}>DNS filtering engine</h2>
-        <p style={{ fontSize: 13, color: '#6B6B68', marginBottom: 12 }}>
-          Your API key connects Guardly to its filtering engine. To update it, go to your
-          Cloudflare Pages dashboard → Settings → Environment Variables and update{' '}
-          <code style={{ background: '#F7F7F5', padding: '1px 6px', borderRadius: 4, fontSize: 12 }}>NEXTDNS_API_KEY</code>.
+        <h2 style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>Account</h2>
+        <p style={{ fontSize: 13, color: '#6B6B68', marginBottom: 16 }}>
+          Your Guardly subscription keeps all your family profiles active and protected.
+          Contact us at <a href="mailto:support@guardly.app" style={{ color: '#1D9E75' }}>support@guardly.app</a> for
+          any account changes.
         </p>
-        <a
-          href="https://dash.cloudflare.com"
-          target="_blank"
-          rel="noreferrer"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '8px 16px', borderRadius: 8,
-            border: '0.5px solid #E4E4E0', fontSize: 13, color: '#1A1A18'
-          }}
-        >
-          Open Cloudflare dashboard ↗
-        </a>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '6px 14px', borderRadius: 20,
+          background: '#E1F5EE', fontSize: 12, fontWeight: 500, color: '#0F6E56'
+        }}>
+          ✓ Active
+        </div>
+      </div>
+
+      <div style={card}>
+        <h2 style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>How Guardly works</h2>
+        <p style={{ fontSize: 13, color: '#6B6B68', lineHeight: 1.7 }}>
+          Guardly works by installing a lightweight security profile on your child's device.
+          This profile quietly filters DNS requests — the tiny lookups every app makes before
+          loading any content. Blocked content simply never loads, on any network, anywhere in the world.
+          No app is running in the background and nothing slows the device down.
+        </p>
       </div>
 
       <div style={card}>
