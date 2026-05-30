@@ -37,12 +37,6 @@ export const updateSchedule = (id, recreation) =>
     method: 'PATCH', body: JSON.stringify({ recreation })
   })
 
-// Pause / unpause: toggles the whole profile's filtering off/on quickly by
-// applying a temporary block-all via settings. We model pause as a flag
-// stored in the profile name suffix handled server-side, plus a denylist '*'.
-export const setPause = (id, paused) =>
-  request(`/profiles/${id}/pause`, { method: 'POST', body: JSON.stringify({ paused }) })
-
 // Analytics
 export const getLogs = (profileId) => request(`/analytics/${profileId}?type=logs`)
 export const getAnalytics = (profileId, kind) => request(`/analytics/${profileId}?type=${kind}`)
