@@ -18,11 +18,33 @@ export default function LandingPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    // Placeholder auth — wire up Clerk/Auth0/Supabase here
+
+    // --- Replace this block with Clerk/Supabase auth when ready ---
+    // For now: store email in localStorage to simulate separate users
+    // New email = onboarding, known email = dashboard
+    const knownUsers = JSON.parse(localStorage.getItem('guardly_users') || '[]')
+    const isKnown = knownUsers.includes(email.toLowerCase())
+
     setTimeout(() => {
       setLoading(false)
-      navigate(mode === 'login' ? '/app' : '/onboarding')
-    }, 800)
+      if (mode === 'signup') {
+        if (isKnown) {
+          setError('An account with this email already exists. Please sign in instead.')
+          return
+        }
+        localStorage.setItem('guardly_users', JSON.stringify([...knownUsers, email.toLowerCase()]))
+        localStorage.setItem('guardly_current_user', email.toLowerCase())
+        navigate('/onboarding')
+      } else {
+        if (!isKnown) {
+          setError('No account found with this email. Please sign up first.')
+          return
+        }
+        localStorage.setItem('guardly_current_user', email.toLowerCase())
+        navigate('/app')
+      }
+    }, 600)
+    // --- End placeholder auth ---
   }
 
   if (mode) {
