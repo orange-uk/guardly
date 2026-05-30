@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   getProfileSection, updateProfileSection, updateProfile, addToList,
-  getLogs, getAnalytics, updateSchedule, setPause, getProfiles
+  getLogs, getAnalytics, updateSchedule, getProfiles
 } from '../api'
 import { friendlyDomain, groupActivity } from '../lib/friendlyDomains'
 import { useAuth } from '../lib/AuthContext'
@@ -72,7 +72,7 @@ export default function ProfilePage() {
     setTab('filters')
     setCategories({}); setServices({}); setDenylist([]); setAllowlist([])
     setLogs([]); setActivityRows([]); setTopBlocked([])
-    setError(null); setEditing(false); setPaused(false)
+    setError(null); setEditing(false)
     setName(''); setDevice(''); setSearch(''); setDeviceList([])
     setSchedDays([])
     loadAll()
@@ -110,7 +110,6 @@ export default function ProfilePage() {
     if (denyR.status === 'fulfilled') {
       const dl = denyR.value.data || []
       setDenylist(dl.filter(d => d.id !== '*'))
-      setPaused(dl.some(d => d.id === '*'))
     }
     if (allowR.status === 'fulfilled') {
       setAllowlist(allowR.value.data || [])
@@ -141,8 +140,6 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState('')
   const [editDevice, setEditDevice] = useState('')
-  const [paused, setPaused] = useState(false)
-  const [pausing, setPausing] = useState(false)
   // schedule
   const [schedDays, setSchedDays] = useState([])
   const [schedFrom, setSchedFrom] = useState('21:00')
@@ -186,11 +183,6 @@ export default function ProfilePage() {
     if (!editName.trim()) return
     try { await updateProfile(profileId, { name: editName.trim() }); setName(editName.trim()); setEditing(false) }
     catch { setError('Could not save name.') }
-  }
-  async function togglePause() {
-    setPausing(true)
-    try { await setPause(profileId, !paused); setPaused(!paused) }
-    catch { setError('Could not change pause state.') } finally { setPausing(false) }
   }
   async function saveScheduleNow() {
     setSchedSaving(true); setSchedSaved(false)
@@ -251,18 +243,10 @@ export default function ProfilePage() {
           )}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={togglePause} disabled={pausing} className={paused ? 'gx-btn' : 'gx-btn-ghost'} style={{ padding: '10px 18px', fontSize: 14, ...(paused ? { background: '#E2A03F', boxShadow: 'none' } : {}) }}>
-            {pausing ? '…' : paused ? '▶ Resume internet' : '⏸ Pause internet'}
-          </button>
           <button onClick={() => navigate(`/app/profile/${profileId}/install`)} className="gx-btn" style={{ padding: '10px 18px', fontSize: 14 }}>＋ Add device</button>
         </div>
       </div>
 
-      {paused && (
-        <div className="gx-card" style={{ background: '#FBF1DD', borderColor: '#E8CE93', padding: '12px 18px', marginBottom: 14 }}>
-          <p style={{ fontSize: 14, color: '#9A6B12' }}>⏸ Internet is paused for this device. Nothing will load until you resume.</p>
-        </div>
-      )}
       {error && (
         <div className="gx-card" style={{ background: '#FBEAE8', borderColor: '#E9B5AF', padding: '12px 18px', marginBottom: 14 }}>
           <p style={{ fontSize: 14, color: '#C24238' }}>⚠️ {error}</p>
