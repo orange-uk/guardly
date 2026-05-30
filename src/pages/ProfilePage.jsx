@@ -4,6 +4,7 @@ import {
   getProfileSection, updateProfileSection, updateProfile, addToList,
   getLogs, getAnalytics, updateSchedule, setPause, getProfiles
 } from '../api'
+import { friendlyDomain, groupActivity } from '../lib/friendlyDomains'
 
 const FONT_D = "'Fraunces', Georgia, serif"
 const AVATARS = ['🦊','🐻','🐼','🐰','🦁','🐨','🐸','🐯']
@@ -60,7 +61,58 @@ export default function ProfilePage() {
   const [denylist, setDenylist] = useState([])
   const [allowlist, setAllowlist] = useState([])
   const [logs, setLogs] = useState([])
+  const [activityRows, setActivityRows] = useState([])
   const [topBlocked, setTopBlocked] = useState([])
+
+  useEffect(() => {
+    // Reset everything when switching to a different child so one profile's
+    // data never bleeds into another's view.
+    setTab('filters')
+    setCategories({}); setServices({}); setDenylist([]); setAllowlist([])
+    setLogs([]); setActivityRows([]); setTopBlocked([])
+    setError(null); setEditing(false); setPaused(false)
+    setName(''); setDevice(''); setSearch('')
+    setSchedDays([])
+    loadAll()
+  }, [profileId])
+
+  async function loadAll() {
+    setLoading(true)
+    setError(null)
+    // Resilient: each call is independent, so one failure doesn't blank the page.
+    const results = await Promise.allSettled([
+      getProfileSection(profileId, 'parentalControl'),
+      getProfileSection(profileId, 'denylist'),
+      getProfileSection(profileId, 'allowlist'),
+      getProfiles(),
+    ])
+    const [pcR, denyR, allowR, allR] = results
+
+    if (pcR.status === 'fulfilled') {
+      const pc = pcR.value
+      const cats = {}; (pc.data?.categories || []).forEach(c => cats[c.id] = true); setCategories(cats)
+      const svcs = {}; (pc.data?.services || []).forEach(s => svcs[s.id] = true); setServices(svcs)
+    }
+    if (denyR.status === 'fulfilled') {
+      const dl = denyR.value.data || []
+      setDenylist(dl.filter(d => d.id !== '*'))
+      setPaused(dl.some(d => d.id === '*'))
+    }
+    if (allowR.status === 'fulfilled') {
+      setAllowlist(allowR.value.data || [])
+    }
+    if (allR.status === 'fulfilled') {
+      const profiles = allR.value.data || []
+      const i = profiles.findIndex(p => p.id === profileId); setIdx(i >= 0 ? i : 0)
+      const found = profiles.find(p => p.id === profileId)
+      const raw = found?.name || profileId
+      const parts = raw.split(' | ')
+      setName(parts[0]); setDevice(parts[1] || '')
+    }
+    // Only show an error if the core settings genuinely failed to load.
+    if (pcR.status === 'rejected') setError('Some settings could not load. Pull to refresh or try again.')
+    setLoading(false)
+  }
   const [loading, setLoading] = useState(true)
   const [denyInput, setDenyInput] = useState('')
   const [allowInput, setAllowInput] = useState('')
@@ -82,43 +134,14 @@ export default function ProfilePage() {
   const [schedSaving, setSchedSaving] = useState(false)
   const [schedSaved, setSchedSaved] = useState(false)
 
-  useEffect(() => { loadAll() }, [profileId])
-
-  async function loadAll() {
-    setLoading(true)
-    try {
-      const [pc, deny, allow, all] = await Promise.all([
-        getProfileSection(profileId, 'parentalControl'),
-        getProfileSection(profileId, 'denylist'),
-        getProfileSection(profileId, 'allowlist'),
-        getProfiles(),
-      ])
-      const cats = {}; (pc.data?.categories || []).forEach(c => cats[c.id] = true); setCategories(cats)
-      const svcs = {}; (pc.data?.services || []).forEach(s => svcs[s.id] = true); setServices(svcs)
-      const dl = deny.data || []
-      setDenylist(dl.filter(d => d.id !== '*'))
-      setPaused(dl.some(d => d.id === '*'))
-      setAllowlist(allow.data || [])
-      // recreation schedule
-      const rec = pc.data?.recreation
-      if (rec?.times?.monday) {
-        // best-effort parse: we store our own simple schedule below
-      }
-      const profiles = all.data || []
-      const i = profiles.findIndex(p => p.id === profileId); setIdx(i >= 0 ? i : 0)
-      const found = profiles.find(p => p.id === profileId)
-      const raw = found?.name || profileId
-      const parts = raw.split(' | ')
-      setName(parts[0]); setDevice(parts[1] || '')
-    } catch (e) { setError('Could not load profile.') }
-    finally { setLoading(false) }
-  }
-
   async function loadActivity() {
     try {
       const [l, tb] = await Promise.all([getLogs(profileId), getAnalytics(profileId, 'topBlocked')])
-      setLogs(l.data || []); setTopBlocked(tb.data || [])
-    } catch (e) { setLogs([]); setTopBlocked([]) }
+      const rawLogs = l.data || []
+      setLogs(rawLogs)
+      setActivityRows(groupActivity(rawLogs))
+      setTopBlocked(tb.data || [])
+    } catch (e) { setLogs([]); setActivityRows([]); setTopBlocked([]) }
   }
 
   async function save(cats, svcs) {
@@ -376,13 +399,14 @@ export default function ProfilePage() {
                 <Card>
                   <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 14 }}>Most blocked</h2>
                   {topBlocked.slice(0, 6).map((d, i) => {
+                    const f = friendlyDomain(d.domain || d.name)
                     const max = topBlocked[0]?.queries || 1
                     const pct = Math.round(((d.queries || 0) / max) * 100)
                     return (
                       <div key={i} style={{ marginBottom: 12 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                          <span style={{ fontFamily: 'monospace' }}>{d.domain || d.name}</span>
-                          <span style={{ color: '#9AA39D' }}>{d.queries || 0}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 4 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span>{f.icon}</span> {f.name}</span>
+                          <span style={{ color: '#9AA39D' }}>{d.queries || 0} tries</span>
                         </div>
                         <div style={{ height: 6, background: '#F2EEE6', borderRadius: 999 }}>
                           <div style={{ height: '100%', width: pct + '%', background: '#C24238', borderRadius: 999 }} />
@@ -394,12 +418,21 @@ export default function ProfilePage() {
               )}
               <Card>
                 <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 4 }}>Recent activity</h2>
-                <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 16 }}>Latest requests from this device.</p>
-                {!logs.length ? <p style={{ fontSize: 14, color: '#C9CFC9' }}>No recent activity.</p> : logs.slice(0, 50).map((log, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #F2EEE6', fontSize: 13 }}>
-                    <span className="gx-pill" style={{ background: log.blocked ? '#FBEAE8' : '#E8F5EE', color: log.blocked ? '#C24238' : '#0E5E42' }}>{log.blocked ? 'Blocked' : 'Allowed'}</span>
-                    <span style={{ flex: 1, fontFamily: 'monospace' }}>{log.domain || log.name}</span>
-                    <span style={{ color: '#9AA39D', fontSize: 12 }}>{device || '—'}</span>
+                <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 16 }}>What {name || 'this device'} has been using, in plain English.</p>
+                {!activityRows.length ? <p style={{ fontSize: 14, color: '#C9CFC9' }}>No recent activity yet.</p> : activityRows.slice(0, 40).map((row, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid #F2EEE6' }}>
+                    <span style={{ fontSize: 20, width: 26, textAlign: 'center' }}>{row.icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 600 }}>{row.name}</div>
+                      <div style={{ fontSize: 12, color: '#9AA39D' }}>
+                        {row.count} visit{row.count !== 1 ? 's' : ''}{row.blocked > 0 ? ` · ${row.blocked} blocked` : ''}
+                      </div>
+                    </div>
+                    {row.blocked > 0 && row.allowed === 0
+                      ? <span className="gx-pill" style={{ background: '#FBEAE8', color: '#C24238' }}>Blocked</span>
+                      : row.blocked > 0
+                        ? <span className="gx-pill" style={{ background: '#FBF1DD', color: '#9A6B12' }}>Mixed</span>
+                        : <span className="gx-pill" style={{ background: '#E8F5EE', color: '#0E5E42' }}>Allowed</span>}
                   </div>
                 ))}
               </Card>

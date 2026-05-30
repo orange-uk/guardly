@@ -19,8 +19,20 @@ async function nextdns(apiKey, path, method = 'GET', body = null) {
   if (body) opts.body = JSON.stringify(body)
   const res = await fetch(`${NEXTDNS_BASE}${path}`, opts)
   const text = await res.text()
-  const data = text ? JSON.parse(text) : { success: true }
-  return { status: res.status, data }
+  let data
+  try { data = text ? JSON.parse(text) : { success: true } }
+  catch { data = { success: true } }
+  return { status: res.status, data, ok: res.ok }
+}
+
+// Always return a 200 with a JSON body. We never echo upstream no-body
+// statuses (204/205/304) because attaching a body to those throws in the
+// browser ("Response with null body status cannot have a body").
+function reply(data, upstreamOk = true) {
+  return new Response(JSON.stringify(data), {
+    status: upstreamOk ? 200 : 502,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+  })
 }
 
 export async function onRequest(context) {
@@ -39,48 +51,32 @@ export async function onRequest(context) {
   }
 
   const url = new URL(request.url)
-  const section = url.searchParams.get('section') // security | parentalControl | denylist | allowlist
+  const section = url.searchParams.get('section')
 
   try {
     if (request.method === 'GET') {
-      // Fetch a specific section or the whole profile
-      const path = section
-        ? `/profiles/${profileId}/${section}`
-        : `/profiles/${profileId}`
-      const { status, data } = await nextdns(apiKey, path)
-      return new Response(JSON.stringify(data), {
-        status, headers: { 'Content-Type': 'application/json', ...corsHeaders() }
-      })
+      const path = section ? `/profiles/${profileId}/${section}` : `/profiles/${profileId}`
+      const { data, ok } = await nextdns(apiKey, path)
+      return reply(data, ok)
     }
 
     if (request.method === 'PATCH') {
       const body = await request.json()
-      const path = section
-        ? `/profiles/${profileId}/${section}`
-        : `/profiles/${profileId}`
-      const { status, data } = await nextdns(apiKey, path, 'PATCH', body)
-      return new Response(JSON.stringify(data), {
-        status, headers: { 'Content-Type': 'application/json', ...corsHeaders() }
-      })
+      const path = section ? `/profiles/${profileId}/${section}` : `/profiles/${profileId}`
+      const { data, ok } = await nextdns(apiKey, path, 'PATCH', body)
+      return reply(data, ok)
     }
 
     if (request.method === 'POST') {
-      // Used for adding items to denylist/allowlist
       const body = await request.json()
-      const path = section
-        ? `/profiles/${profileId}/${section}`
-        : `/profiles/${profileId}`
-      const { status, data } = await nextdns(apiKey, path, 'POST', body)
-      return new Response(JSON.stringify(data), {
-        status, headers: { 'Content-Type': 'application/json', ...corsHeaders() }
-      })
+      const path = section ? `/profiles/${profileId}/${section}` : `/profiles/${profileId}`
+      const { data, ok } = await nextdns(apiKey, path, 'POST', body)
+      return reply(data, ok)
     }
 
     if (request.method === 'DELETE') {
-      const { status, data } = await nextdns(apiKey, `/profiles/${profileId}`, 'DELETE')
-      return new Response(JSON.stringify(data), {
-        status, headers: { 'Content-Type': 'application/json', ...corsHeaders() }
-      })
+      const { ok } = await nextdns(apiKey, `/profiles/${profileId}`, 'DELETE')
+      return reply({ success: ok }, ok)
     }
 
   } catch (err) {

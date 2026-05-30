@@ -99,10 +99,14 @@ export default function Layout() {
           {isMobile && (
             <button onClick={() => setMenuOpen(true)} aria-label="Menu" style={{ fontSize: 22, padding: '4px 8px', color: '#1A2420' }}>☰</button>
           )}
-          <Logo size={30} />
-          <span style={{ fontFamily: FONT_D, fontWeight: 700, fontSize: 19 }}>Guardly</span>
+          <button onClick={() => navigate('/')} title="Back to Guardly home" style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+            <Logo size={30} />
+            <span style={{ fontFamily: FONT_D, fontWeight: 700, fontSize: 19 }}>Guardly</span>
+          </button>
         </div>
-        <span style={{ fontSize: 13, color: '#9AA39D' }}>{auth?.user?.email || 'Family safety'}</span>
+        <span className="gx-only-desktop" style={{ fontFamily: FONT_D, fontStyle: 'italic', fontSize: 15, color: '#1F9D6B', fontWeight: 500 }}>
+          Your family, safe online ✨
+        </span>
       </div>
 
       <div style={{ display: 'flex', flex: 1 }}>
