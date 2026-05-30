@@ -1,8 +1,7 @@
 // src/lib/AuthContext.jsx
-// Provides auth state across the app and maps the logged-in parent
-// to the set of child profiles they own (stored in Supabase).
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { supabase, isSupabaseConfigured } from './supabase'
+import { ensureHousehold, getHousehold, getProfileIds, linkProfile, unlinkProfile } from './household'
 
 const AuthContext = createContext(null)
 
@@ -11,11 +10,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
-      // Dev fallback: treat as logged-out until keys are added.
-      setLoading(false)
-      return
-    }
+    if (!isSupabaseConfigured()) { setLoading(false); return }
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null)
       setLoading(false)
@@ -29,11 +24,9 @@ export function AuthProvider({ children }) {
   const signUp = async (email, password, name) => {
     if (!isSupabaseConfigured()) throw new Error('Auth not configured yet')
     const { data, error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { full_name: name } }
+      email, password, options: { data: { full_name: name } }
     })
     if (error) throw error
-    // If email confirmation is on, there's a user but no active session yet.
     const needsConfirmation = !!data.user && !data.session
     return { ...data, needsConfirmation }
   }
@@ -50,8 +43,24 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  // Closes the account: removes household data this user owns, deletes their
+  // auth account via the secure Worker (if configured), then signs out.
+  const closeAccount = async () => {
+    if (!isSupabaseConfigured() || !user) { await signOut(); return }
+    try {
+      const hh = await getHousehold(user.id)
+      const { data: { session } } = await supabase.auth.getSession()
+      await fetch('/api/account/close', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: session?.access_token, household_id: hh?.id })
+      })
+    } catch (e) { /* best effort */ }
+    await signOut()
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, closeAccount }}>
       {children}
     </AuthContext.Provider>
   )
@@ -59,23 +68,20 @@ export function AuthProvider({ children }) {
 
 export const useAuth = () => useContext(AuthContext)
 
-// --- Profile ownership helpers (maps parent → their child profiles) ---
-// Table: profiles_owned (user_id uuid, profile_id text, created_at timestamp)
-export async function linkProfileToUser(userId, profileId) {
-  if (!isSupabaseConfigured()) return
-  await supabase.from('profiles_owned').insert({ user_id: userId, profile_id: profileId })
-}
-
+// ---- Backward-compatible helpers used across the app (household-based) ----
 export async function getOwnedProfileIds(userId) {
-  if (!isSupabaseConfigured()) return null // null = "not configured, show all"
-  const { data, error } = await supabase
-    .from('profiles_owned').select('profile_id').eq('user_id', userId)
-  if (error) return []
-  return data.map(r => r.profile_id)
+  if (!isSupabaseConfigured()) return null
+  const hh = await ensureHousehold(userId)
+  if (!hh) return []
+  return await getProfileIds(hh)
 }
-
-export async function unlinkProfile(userId, profileId) {
+export async function linkProfileToUser(userId, profileId, displayName) {
   if (!isSupabaseConfigured()) return
-  await supabase.from('profiles_owned').delete()
-    .eq('user_id', userId).eq('profile_id', profileId)
+  const hh = await ensureHousehold(userId, displayName)
+  if (hh) await linkProfile(hh, profileId)
+}
+export async function unlinkProfileForUser(userId, profileId) {
+  if (!isSupabaseConfigured()) return
+  const hh = await ensureHousehold(userId)
+  if (hh) await unlinkProfile(hh, profileId)
 }

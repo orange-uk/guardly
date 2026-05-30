@@ -242,6 +242,8 @@ function Logo({ size = 30 }) {
 
 export default function LandingPage() {
   const [authMode, setAuthMode] = useState(null)
+  const navigate = useNavigate()
+  const auth = useAuth()
 
   return (
     <div style={{ background: '#FBF9F4', minHeight: '100vh', overflowX: 'hidden' }}>
@@ -263,8 +265,12 @@ export default function LandingPage() {
           <a href="#pricing">Pricing</a>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setAuthMode('login')} style={{ fontSize: 14, fontWeight: 600, color: '#1A2420', padding: '8px 4px' }}>Sign in</button>
-          <button onClick={() => setAuthMode('signup')} className="gx-btn" style={{ padding: '10px 20px', fontSize: 14 }}>Start free</button>
+          {auth?.user ? (
+            <button onClick={() => navigate('/app')} className="gx-btn" style={{ padding: '10px 20px', fontSize: 14 }}>Go to dashboard →</button>
+          ) : (<>
+            <button onClick={() => setAuthMode('login')} style={{ fontSize: 14, fontWeight: 600, color: '#1A2420', padding: '8px 4px' }}>Sign in</button>
+            <button onClick={() => setAuthMode('signup')} className="gx-btn" style={{ padding: '10px 20px', fontSize: 14 }}>Start free</button>
+          </>)}
         </div>
       </nav>
 
@@ -283,9 +289,11 @@ export default function LandingPage() {
               or at a friend's house. Set it up once in minutes, then forget about it.
             </p>
             <div className="fade-up d3" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <button onClick={() => setAuthMode('signup')} className="gx-btn" style={{ padding: '15px 30px', fontSize: 16 }}>
-                Start your free trial
-              </button>
+              {auth?.user ? (
+                <button onClick={() => navigate('/app')} className="gx-btn" style={{ padding: '15px 30px', fontSize: 16 }}>Go to your dashboard →</button>
+              ) : (
+                <button onClick={() => setAuthMode('signup')} className="gx-btn" style={{ padding: '15px 30px', fontSize: 16 }}>Start your free trial</button>
+              )}
               <a href="#how" className="gx-btn-ghost" style={{ padding: '15px 30px', fontSize: 16 }}>See how it works</a>
             </div>
             <div className="fade-up d4" style={{ display: 'flex', gap: 22, marginTop: 28, fontSize: 13, color: '#5B655F', flexWrap: 'wrap' }}>
@@ -400,7 +408,7 @@ export default function LandingPage() {
               <span><span style={{ fontFamily: FONT_D, fontSize: 42, fontWeight: 600 }}>£3</span><span style={{ color: '#5B655F', fontSize: 15 }}>/mo</span></span>
             </div>
             <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 24 }}>Billed annually at £36/year · cancel anytime</p>
-            {['Unlimited children & devices','All content categories','App & site blocking','Time limits & schedules','Pause the internet anytime','Activity reports','iPhone, iPad, Mac & Android','Friendly email support'].map(f => (
+            {['Unlimited children & devices','All content categories','App & site blocking','Time limits & schedules','Pause the internet anytime','Activity reports','iPhone, iPad, Mac, Android, Chromebook & Windows','Friendly email support'].map(f => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', fontSize: 14.5 }}>
                 <span style={{ color: '#1F9D6B', fontWeight: 700 }}>✓</span> {f}
               </div>

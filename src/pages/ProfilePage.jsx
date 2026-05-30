@@ -5,6 +5,8 @@ import {
   getLogs, getAnalytics, updateSchedule, setPause, getProfiles
 } from '../api'
 import { friendlyDomain, groupActivity } from '../lib/friendlyDomains'
+import { useAuth } from '../lib/AuthContext'
+import { getHousehold, getDevices, removeDevice } from '../lib/household'
 
 const FONT_D = "'Fraunces', Georgia, serif"
 const AVATARS = ['🦊','🐻','🐼','🐰','🦁','🐨','🐸','🐯']
@@ -71,10 +73,22 @@ export default function ProfilePage() {
     setCategories({}); setServices({}); setDenylist([]); setAllowlist([])
     setLogs([]); setActivityRows([]); setTopBlocked([])
     setError(null); setEditing(false); setPaused(false)
-    setName(''); setDevice(''); setSearch('')
+    setName(''); setDevice(''); setSearch(''); setDeviceList([])
     setSchedDays([])
     loadAll()
+    loadDevices()
   }, [profileId])
+
+  async function loadDevices() {
+    try {
+      const d = await getDevices(profileId)
+      setDeviceList(d)
+    } catch { setDeviceList([]) }
+  }
+
+  async function deleteDevice(id) {
+    try { await removeDevice(id); setDeviceList(deviceList.filter(d => d.id !== id)) } catch {}
+  }
 
   async function loadAll() {
     setLoading(true)
@@ -121,6 +135,8 @@ export default function ProfilePage() {
   const [search, setSearch] = useState('')
   const [name, setName] = useState('')
   const [device, setDevice] = useState('')
+  const [deviceList, setDeviceList] = useState([])
+  const auth = useAuth()
   const [idx, setIdx] = useState(0)
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState('')
@@ -168,8 +184,7 @@ export default function ProfilePage() {
   }
   async function saveEdit() {
     if (!editName.trim()) return
-    const combined = editDevice.trim() ? editName.trim() + ' | ' + editDevice.trim() : editName.trim()
-    try { await updateProfile(profileId, { name: combined }); setName(editName.trim()); setDevice(editDevice.trim()); setEditing(false) }
+    try { await updateProfile(profileId, { name: editName.trim() }); setName(editName.trim()); setEditing(false) }
     catch { setError('Could not save name.') }
   }
   async function togglePause() {
@@ -218,7 +233,6 @@ export default function ProfilePage() {
           {editing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <input className="gx-input" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Child's name" style={{ fontWeight: 600 }} />
-              <input className="gx-input" value={editDevice} onChange={e => setEditDevice(e.target.value)} placeholder="Device name (e.g. Emma's iPhone)" />
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={saveEdit} className="gx-btn" style={{ padding: '7px 16px', fontSize: 13 }}>Save</button>
                 <button onClick={() => setEditing(false)} className="gx-btn-ghost" style={{ padding: '7px 16px', fontSize: 13 }}>Cancel</button>
@@ -228,11 +242,11 @@ export default function ProfilePage() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <h1 style={{ fontFamily: FONT_D, fontSize: 26, fontWeight: 600 }}>{name}</h1>
-                <button onClick={() => { setEditName(name); setEditDevice(device); setEditing(true) }} style={{ color: '#C9CFC9', fontSize: 15, padding: '2px 6px' }}>✏️</button>
+                <button onClick={() => { setEditName(name); setEditing(true) }} style={{ color: '#C9CFC9', fontSize: 15, padding: '2px 6px' }}>✏️</button>
               </div>
-              {device
-                ? <div style={{ fontSize: 13.5, color: '#5B655F', marginTop: 3, display: 'flex', alignItems: 'center', gap: 8 }}>📱 {device} <span className="gx-pill" style={{ background: tint, color: tintText }}>Protected</span></div>
-                : <div style={{ fontSize: 13.5, color: '#9AA39D', marginTop: 3 }}>No device yet — <button onClick={() => navigate(`/app/profile/${profileId}/install`)} style={{ color: '#1F9D6B', fontWeight: 600 }}>install on a device</button></div>}
+              {deviceList.length
+                ? <div style={{ fontSize: 13.5, color: '#5B655F', marginTop: 3, display: 'flex', alignItems: 'center', gap: 8 }}>📱 {deviceList.length} device{deviceList.length > 1 ? 's' : ''} <span className="gx-pill" style={{ background: tint, color: tintText }}>Protected</span></div>
+                : <div style={{ fontSize: 13.5, color: '#9AA39D', marginTop: 3 }}>No devices yet — <button onClick={() => navigate(`/app/profile/${profileId}/install`)} style={{ color: '#1F9D6B', fontWeight: 600 }}>add a device</button></div>}
             </div>
           )}
         </div>
@@ -259,6 +273,7 @@ export default function ProfilePage() {
       <div className="gx-scroll-x" style={{ display: 'flex', gap: 4, borderBottom: '1px solid #EAE5DA', marginBottom: 20 }}>
         {tab_('filters','Categories')}
         {tab_('services','Apps & sites', blockedSvc)}
+        {tab_('devices','Devices', deviceList.length)}
         {tab_('schedule','Time limits')}
         {tab_('deny','Block list')}
         {tab_('allow','Allow list')}
@@ -314,6 +329,32 @@ export default function ProfilePage() {
                 </Card>
               ))}
             </>
+          )}
+
+          {tab === 'devices' && (
+            <Card>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <h2 style={{ fontFamily: FONT_D, fontSize: 18 }}>{name}'s devices</h2>
+                <button onClick={() => navigate(`/app/profile/${profileId}/install`)} className="gx-btn" style={{ padding: '8px 16px', fontSize: 13 }}>＋ Add device</button>
+              </div>
+              <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 16 }}>Each device {name} uses is protected individually, everywhere it goes.</p>
+              {!deviceList.length ? (
+                <p style={{ fontSize: 14, color: '#C9CFC9' }}>No devices added yet. Tap “Add device” to protect {name}'s first device.</p>
+              ) : deviceList.map(d => {
+                const icon = d.platform === 'mac' ? '💻' : d.platform === 'android' ? '🤖' : '📱'
+                return (
+                  <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #F2EEE6' }}>
+                    <span style={{ fontSize: 22 }}>{icon}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 600 }}>{d.name}</div>
+                      <div style={{ fontSize: 12, color: '#9AA39D' }}>{d.platform === 'mac' ? 'Mac' : d.platform === 'android' ? 'Android' : 'iPhone / iPad'}</div>
+                    </div>
+                    <span className="gx-pill" style={{ background: '#E8F5EE', color: '#0E5E42' }}>Protected</span>
+                    <button onClick={() => deleteDevice(d.id)} style={{ color: '#C9CFC9', fontSize: 15, padding: '2px 8px' }} title="Remove device">✕</button>
+                  </div>
+                )
+              })}
+            </Card>
           )}
 
           {tab === 'schedule' && (

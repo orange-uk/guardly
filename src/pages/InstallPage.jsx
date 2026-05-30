@@ -1,91 +1,96 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useAuth } from '../lib/AuthContext'
+import { getHousehold, addDevice } from '../lib/household'
+import { DEVICE_GROUPS, DEVICES, deviceSteps } from '../lib/devices'
 
 const FONT_D = "'Fraunces', Georgia, serif"
-
-function Step({ n, children }) {
-  return (
-    <div style={{ display: 'flex', gap: 13, marginBottom: 15 }}>
-      <div style={{ width: 25, height: 25, borderRadius: '50%', background: '#1F9D6B', color: '#fff', fontSize: 12, fontWeight: 700, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>{n}</div>
-      <div style={{ fontSize: 14.5, color: '#5B655F', lineHeight: 1.6 }}>{children}</div>
-    </div>
-  )
-}
 
 export default function InstallPage() {
   const { profileId } = useParams()
   const navigate = useNavigate()
+  const auth = useAuth()
   const [platform, setPlatform] = useState('iphone')
+  const [deviceName, setDeviceName] = useState('')
+  const [saved, setSaved] = useState(false)
+  const [householdId, setHouseholdId] = useState(null)
+
+  useEffect(() => {
+    if (auth?.user) getHousehold(auth.user.id).then(h => setHouseholdId(h?.id))
+  }, [auth?.user])
 
   const configUrl = `${window.location.origin}/api/install/${profileId}`
   const dotHost = 'dns.guardly.app'
+  const info = deviceSteps(platform, configUrl, dotHost, deviceName)
 
-  const tab = (p, label) => (
-    <button onClick={() => setPlatform(p)} style={{
-      padding: '9px 17px', fontSize: 14, whiteSpace: 'nowrap',
-      color: platform === p ? '#0E5E42' : '#5B655F', fontWeight: platform === p ? 600 : 500,
-      borderBottom: platform === p ? '2px solid #1F9D6B' : '2px solid transparent'
-    }}>{label}</button>
-  )
-
-  const Code = ({ children }) => (
-    <code style={{ display: 'inline-block', marginTop: 7, padding: '8px 13px', background: '#F7F4ED', borderRadius: 10, fontSize: 12.5, border: '1px solid #EAE5DA', wordBreak: 'break-all', fontFamily: 'monospace' }}>{children}</code>
-  )
+  async function saveDevice() {
+    if (!deviceName.trim()) return
+    if (auth?.user && householdId) await addDevice(householdId, profileId, deviceName.trim(), platform)
+    setSaved(true)
+    setTimeout(() => navigate(`/app/profile/${profileId}`), 900)
+  }
 
   return (
     <div className="fade-up">
       <button onClick={() => navigate(`/app/profile/${profileId}`)} style={{ fontSize: 13, color: '#5B655F', marginBottom: 14 }}>← Back to profile</button>
       <h1 style={{ fontFamily: FONT_D, fontSize: 28, fontWeight: 600, marginBottom: 4 }}>Add a device</h1>
-      <p style={{ color: '#5B655F', fontSize: 15, marginBottom: 22 }}>Protection installs per device. Pick the device type and follow the steps — about 60 seconds.</p>
+      <p style={{ color: '#5B655F', fontSize: 15, marginBottom: 22 }}>Pick the device type, give it a name, then follow the steps — about 60 seconds.</p>
 
-      <div className="gx-card" style={{ background: '#E8F5EE', borderColor: '#A9DCC2', padding: '14px 18px', marginBottom: 22 }}>
-        <p style={{ fontSize: 14, color: '#0E5E42' }}>🔒 Once installed, the profile can't be removed without your password — and the device stays protected on every network, including school and friends' houses.</p>
-      </div>
-
-      <div className="gx-scroll-x" style={{ display: 'flex', gap: 4, borderBottom: '1px solid #EAE5DA', marginBottom: 22 }}>
-        {tab('iphone','iPhone / iPad')}{tab('mac','Mac')}{tab('android','Android')}{tab('router','Home router')}
-      </div>
-
-      <div className="gx-card" style={{ padding: 24 }}>
-        {platform === 'iphone' && (<>
-          <h2 style={{ fontFamily: FONT_D, fontSize: 19, marginBottom: 18 }}>iPhone or iPad</h2>
-          <Step n="1">On the child's device, open <strong>Safari</strong> (must be Safari)</Step>
-          <Step n="2">Go to this address:<br /><Code>{configUrl}</Code></Step>
-          <Step n="3">Tap <strong>Allow</strong> when asked to download a configuration profile</Step>
-          <Step n="4">Open <strong>Settings → General → VPN & Device Management</strong></Step>
-          <Step n="5">Tap the <strong>Guardly profile</strong> and tap <strong>Install</strong></Step>
-          <Step n="6">Enter the device passcode to confirm. Done — it's protected.</Step>
-        </>)}
-        {platform === 'mac' && (<>
-          <h2 style={{ fontFamily: FONT_D, fontSize: 19, marginBottom: 18 }}>Mac</h2>
-          <Step n="1">On the child's Mac, open <strong>Safari</strong> and go to:<br /><Code>{configUrl}</Code></Step>
-          <Step n="2">Open the downloaded file when prompted</Step>
-          <Step n="3">Open <strong>System Settings → Privacy & Security → Profiles</strong></Step>
-          <Step n="4">Click the <strong>Guardly profile</strong> and click <strong>Install</strong></Step>
-          <Step n="5">Enter <strong>your admin password</strong> (yours, not the child's) to approve</Step>
-          <div style={{ marginTop: 16, padding: '12px 16px', background: '#FBF1DD', borderRadius: 12, fontSize: 13, color: '#9A6B12' }}>
-            ⚠️ Make sure the child's Mac account is a <strong>Standard user</strong>, not an Administrator (System Settings → Users & Groups).
+      {/* Grouped device picker */}
+      {DEVICE_GROUPS.map(g => (
+        <div key={g.group} style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#9AA39D', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>{g.group}</div>
+          <div style={{ fontSize: 12.5, color: '#9AA39D', marginBottom: 10 }}>{g.note}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 8 }}>
+            {g.items.map(id => {
+              const d = DEVICES[id]
+              const on = platform === id
+              return (
+                <button key={id} onClick={() => setPlatform(id)} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, textAlign: 'left',
+                  border: '1.5px solid ' + (on ? '#1F9D6B' : '#EAE5DA'), background: on ? '#E8F5EE' : '#fff'
+                }}>
+                  <span style={{ fontSize: 20 }}>{d.icon}</span>
+                  <span style={{ fontSize: 13.5, fontWeight: on ? 700 : 500, color: on ? '#0E5E42' : '#1A2420' }}>{d.label}</span>
+                </button>
+              )
+            })}
           </div>
-        </>)}
-        {platform === 'android' && (<>
-          <h2 style={{ fontFamily: FONT_D, fontSize: 19, marginBottom: 18 }}>Android</h2>
-          <Step n="1">Open <strong>Settings</strong> and search for <strong>Private DNS</strong></Step>
-          <Step n="2">Select <strong>Private DNS provider hostname</strong></Step>
-          <Step n="3">Enter this hostname:<br /><Code>{dotHost}</Code></Step>
-          <Step n="4">Tap <strong>Save</strong>. Done — it's protected.</Step>
-          <div style={{ marginTop: 16, padding: '12px 16px', background: '#FBF1DD', borderRadius: 12, fontSize: 13, color: '#9A6B12' }}>
-            ⚠️ Android's Private DNS can be changed in Settings. Pair with Google Family Link to lock Settings down.
-          </div>
-        </>)}
-        {platform === 'router' && (<>
-          <h2 style={{ fontFamily: FONT_D, fontSize: 19, marginBottom: 18 }}>Home router</h2>
-          <p style={{ fontSize: 14, color: '#5B655F', marginBottom: 18 }}>Covers every device on your home network — consoles, smart TVs, and anything that can't take a profile.</p>
-          <Step n="1">Log into your router (usually <code>192.168.0.1</code> or <code>192.168.1.1</code>)</Step>
-          <Step n="2">Find the <strong>DNS settings</strong> (WAN / Internet / Advanced)</Step>
-          <Step n="3">Set the DNS-over-TLS hostname to:<br /><Code>{dotHost}</Code></Step>
-          <Step n="4">Save and restart the router if prompted</Step>
-        </>)}
+        </div>
+      ))}
+
+      {/* Name */}
+      <div className="gx-card" style={{ padding: 20, marginBottom: 16 }}>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#5B655F', marginBottom: 6 }}>Name this device</label>
+        <input className="gx-input" value={deviceName} onChange={e => setDeviceName(e.target.value)} placeholder={DEVICES[platform].placeholder} />
+        <p style={{ fontSize: 12, color: '#9AA39D', marginTop: 8 }}>Helps you tell this child's devices apart in activity logs.</p>
       </div>
+
+      <div className="gx-card" style={{ background: '#E8F5EE', borderColor: '#A9DCC2', padding: '14px 18px', marginBottom: 18 }}>
+        <p style={{ fontSize: 14, color: '#0E5E42' }}>🔒 Once set up, the device stays protected on every network — including school and friends' houses.</p>
+      </div>
+
+      {/* Steps */}
+      <div className="gx-card" style={{ padding: 24, marginBottom: 16 }}>
+        <h2 style={{ fontFamily: FONT_D, fontSize: 19, marginBottom: 18 }}>{DEVICES[platform].label}</h2>
+        {info.steps.map((s, i) => (
+          <div key={i} style={{ display: 'flex', gap: 13, marginBottom: 14 }}>
+            <div style={{ width: 25, height: 25, borderRadius: '50%', background: '#1F9D6B', color: '#fff', fontSize: 12, fontWeight: 700, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>{i + 1}</div>
+            <div style={{ fontSize: 14.5, color: '#5B655F', lineHeight: 1.6 }}>{s}</div>
+          </div>
+        ))}
+        <div style={{ marginTop: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#5B655F', marginBottom: 4 }}>{info.valueLabel}</div>
+          <code style={{ display: 'inline-block', padding: '8px 13px', background: '#F7F4ED', borderRadius: 10, fontSize: 12.5, border: '1px solid #EAE5DA', wordBreak: 'break-all', fontFamily: 'monospace' }}>{info.value}</code>
+        </div>
+        {info.warn && (
+          <div style={{ marginTop: 16, padding: '12px 16px', background: '#FBF1DD', borderRadius: 12, fontSize: 13, color: '#9A6B12' }}>⚠️ {info.warn}</div>
+        )}
+      </div>
+
+      <button onClick={saveDevice} disabled={!deviceName.trim() || saved} className="gx-btn" style={{ width: '100%', opacity: (!deviceName.trim() || saved) ? 0.6 : 1 }}>
+        {saved ? '✓ Device added' : 'Done — save this device'}
+      </button>
     </div>
   )
 }
