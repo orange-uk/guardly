@@ -160,7 +160,9 @@ export default function Dashboard() {
           {!loading && profiles.length > 0 && (
             <div style={{ display: 'flex', gap: 22, marginTop: 18 }}>
               <div><span style={{ fontFamily: FONT_D, fontSize: 22, fontWeight: 600, color: '#177A53' }}>{profiles.length}</span> <span style={{ fontSize: 13, color: '#5B655F' }}>{profiles.length === 1 ? 'child' : 'children'}</span></div>
-              <div><span style={{ fontFamily: FONT_D, fontSize: 22, fontWeight: 600, color: '#177A53' }}>{Object.values(devicesByProfile).reduce((n, d) => n + (d?.length || 0), 0)}</span> <span style={{ fontSize: 13, color: '#5B655F' }}>devices protected</span></div>
+              {(() => { const dc = Object.values(devicesByProfile).reduce((n, d) => n + (d?.length || 0), 0); return (
+                <div><span style={{ fontFamily: FONT_D, fontSize: 22, fontWeight: 600, color: '#177A53' }}>{dc}</span> <span style={{ fontSize: 13, color: '#5B655F' }}>{dc === 1 ? 'device' : 'devices'} protected</span></div>
+              ) })()}
             </div>
           )}
         </div>

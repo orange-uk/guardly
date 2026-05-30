@@ -88,7 +88,7 @@ function DeviceLogos() {
   const c = '#5B655F'
   const logos = [
     ['iPhone / iPad', (
-      <svg width="22" height="26" viewBox="0 0 24 24" fill={c}><rect x="6" y="2" width="12" height="20" rx="2.6" stroke={c} strokeWidth="1.8" fill="none"/><circle cx="12" cy="18.6" r="1" fill={c}/><line x1="10.4" y1="4.4" x2="13.6" y2="4.4" stroke={c} strokeWidth="1.4" strokeLinecap="round"/></svg>
+      <svg width="20" height="26" viewBox="0 0 24 24" fill="none"><rect x="5" y="1.5" width="14" height="21" rx="3.2" fill={c}/><rect x="9.5" y="3.2" width="5" height="1.4" rx="0.7" fill="#FBF9F4"/><rect x="6.6" y="5.6" width="10.8" height="13.2" rx="1" fill="#FBF9F4"/><rect x="9.8" y="20" width="4.4" height="1.2" rx="0.6" fill="#FBF9F4"/></svg>
     )],
     ['Mac', (
       <svg width="26" height="26" viewBox="0 0 24 24" fill={c}><path d="M17.05 12.54c-.02-2.05 1.68-3.04 1.75-3.09-.95-1.4-2.44-1.59-2.97-1.61-1.27-.13-2.47.74-3.11.74-.64 0-1.63-.72-2.68-.7-1.38.02-2.65.8-3.36 2.04-1.43 2.49-.37 6.17 1.03 8.19.68.99 1.5 2.1 2.57 2.06 1.03-.04 1.42-.67 2.67-.67 1.24 0 1.6.67 2.69.65 1.11-.02 1.81-1.01 2.49-2 .78-1.15 1.11-2.26 1.13-2.32-.02-.01-2.17-.83-2.2-3.29zM15.01 6.5c.57-.69.95-1.65.85-2.6-.82.03-1.81.54-2.39 1.23-.52.61-.98 1.58-.86 2.51.91.07 1.84-.46 2.4-1.14z"/></svg>
@@ -503,7 +503,7 @@ export default function LandingPage() {
           <Logo size={26} />
           <span style={{ fontFamily: FONT_D, fontWeight: 600 }}>Guardly</span>
         </div>
-        <div style={{ fontSize: 13, color: '#9AA39D' }}>© 2026 Guardly · <a href="mailto:support@guardly.app" style={{ color: '#5B655F' }}>support@guardly.app</a></div>
+        <div style={{ fontSize: 13, color: '#9AA39D' }}><a href="/security" style={{ color: '#5B655F' }}>How secure is Guardly?</a> · © 2026 Guardly · <a href="mailto:support@guardly.app" style={{ color: '#5B655F' }}>support@guardly.app</a></div>
       </footer>
 
       {authMode && <AuthCard mode={authMode} setMode={setAuthMode} onClose={() => setAuthMode(null)} />}

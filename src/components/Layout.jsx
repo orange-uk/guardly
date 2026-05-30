@@ -84,6 +84,9 @@ export default function Layout() {
         <NavLink to="/app/settings" onClick={() => setMenuOpen(false)} style={({ isActive }) => navItem(isActive)}>
           <span style={{ fontSize: 17 }}>⚙️</span> Settings
         </NavLink>
+        <NavLink to="/app/security" onClick={() => setMenuOpen(false)} style={({ isActive }) => navItem(isActive)}>
+          <span style={{ fontSize: 17 }}>🔒</span> How secure is Guardly?
+        </NavLink>
         {auth?.user && (
           <button onClick={() => { auth.signOut(); navigate('/') }} style={{ ...navItem(false) }}>
             <span style={{ fontSize: 17 }}>↩</span> Sign out
@@ -116,8 +119,21 @@ export default function Layout() {
               ⬇ Install app
             </button>
           )}
-          <span className="gx-only-desktop" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, color: '#9AA39D', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Your family, safe online
+          <span className="gx-only-desktop" style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <svg width="30" height="30" viewBox="0 0 40 40" role="img" aria-label="Guardly safe family badge">
+              <defs>
+                <linearGradient id="hdrShield" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#27B07A" />
+                  <stop offset="100%" stopColor="#1F9D6B" />
+                </linearGradient>
+              </defs>
+              <circle cx="20" cy="20" r="19" fill="#E8F5EE" />
+              <path d="M20 7 L31 12 L31 21 C31 28 26 32.5 20 34.5 C14 32.5 9 28 9 21 L9 12 Z" fill="url(#hdrShield)" />
+              <path d="M20 26.5 C16.5 23.8 14.2 22 14.2 19.4 C14.2 17.6 15.6 16.3 17.2 16.3 C18.3 16.3 19.3 16.9 20 17.9 C20.7 16.9 21.7 16.3 22.8 16.3 C24.4 16.3 25.8 17.6 25.8 19.4 C25.8 22 23.5 23.8 20 26.5 Z" fill="#fff" />
+            </svg>
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 18, color: '#5B655F', fontWeight: 600, letterSpacing: '0.04em' }}>
+              Your family, safe online
+            </span>
           </span>
         </div>
       </div>

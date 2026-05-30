@@ -346,3 +346,23 @@ create policy "hp update" on household_profiles for update
 - **Header tagline** restyled from italic serif to a clean uppercase kicker.
 
 No new env vars.
+
+## Batch — security page + header + fixes
+No new SQL or env vars (the rename UPDATE policy from the previous batch is the last
+required one — make sure you've run it).
+
+### What's in this batch
+- **"How secure is Guardly?" page**: a collapsible page covering iPhone/iPad, Mac,
+  Android, Chromebook, Windows, VPNs, and an honest "what it won't catch" section.
+  Linked from the sidebar (in-app) and the landing footer (public, at /security).
+- **Device logos**: iOS icon redrawn (filled iPhone silhouette); Apple split into
+  "iPhone / iPad" and "Mac".
+- **Header tagline**: "Your family, safe online" enlarged 50% with a small shield-heart
+  badge beside it.
+- **Device count**: now pluralises correctly ("1 device" / "2 devices").
+
+### Note on the security page content
+The Apple lockdown steps are verified against Apple's docs. The Android / Chromebook /
+Windows guidance is sound general advice but written from general platform knowledge —
+worth a quick sanity-check against each platform's current setup flow before relying on
+it publicly, as menu names shift. Claims are hedged so nothing is overstated.
