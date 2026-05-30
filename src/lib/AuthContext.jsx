@@ -12,14 +12,32 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!isSupabaseConfigured()) { setLoading(false); return }
     supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null)
+      const u = data.session?.user ?? null
+      setUser(u)
+      if (u) ensureHousehold(u.id, u.user_metadata?.full_name)  // self-heal: every user gets a household
       setLoading(false)
     })
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null)
+      const u = session?.user ?? null
+      setUser(u)
+      if (u) ensureHousehold(u.id, u.user_metadata?.full_name)
     })
     return () => sub.subscription.unsubscribe()
   }, [])
+
+  const resetPassword = async (email) => {
+    if (!isSupabaseConfigured()) throw new Error('Auth not configured yet')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset`
+    })
+    if (error) throw error
+  }
+
+  const updatePassword = async (newPassword) => {
+    if (!isSupabaseConfigured()) throw new Error('Auth not configured yet')
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) throw error
+  }
 
   const signUp = async (email, password, name) => {
     if (!isSupabaseConfigured()) throw new Error('Auth not configured yet')
@@ -60,7 +78,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, closeAccount }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, closeAccount, resetPassword, updatePassword }}>
       {children}
     </AuthContext.Provider>
   )

@@ -4,6 +4,7 @@ import { getProfiles } from '../api'
 import { useAuth } from '../lib/AuthContext'
 import { getOwnedProfileIds } from '../lib/AuthContext'
 import { useIsMobile } from '../hooks/useMediaQuery'
+import { useInstallPrompt } from '../hooks/useInstallPrompt'
 
 const FONT_D = "'Fraunces', Georgia, serif"
 const AVATARS = ['🦊','🐻','🐼','🐰','🦁','🐨','🐸','🐯']
@@ -30,6 +31,7 @@ export default function Layout() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const auth = useAuth()
+  const { canInstall, promptInstall } = useInstallPrompt()
 
   useEffect(() => { load() }, [])
 
@@ -104,9 +106,16 @@ export default function Layout() {
             <span style={{ fontFamily: FONT_D, fontWeight: 700, fontSize: 19 }}>Guardly</span>
           </button>
         </div>
-        <span className="gx-only-desktop" style={{ fontFamily: FONT_D, fontStyle: 'italic', fontSize: 15, color: '#1F9D6B', fontWeight: 500 }}>
-          Your family, safe online ✨
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {canInstall && (
+            <button onClick={promptInstall} className="gx-btn" style={{ padding: '7px 14px', fontSize: 13 }}>
+              ⬇ Install app
+            </button>
+          )}
+          <span className="gx-only-desktop" style={{ fontFamily: FONT_D, fontStyle: 'italic', fontSize: 15, color: '#1F9D6B', fontWeight: 500 }}>
+            Your family, safe online ✨
+          </span>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flex: 1 }}>

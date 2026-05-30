@@ -141,3 +141,23 @@ The install screen and onboarding now support: iPhone/iPad, Mac, Android phone,
 Android/Fire tablet, Chromebook, and Windows PC — grouped into "Apple devices"
 (travel everywhere, tamper-proof) and "Other devices" (set up via DNS settings),
 each with its own step-by-step instructions. No extra setup needed for this part.
+
+## Latest additions (this upload)
+- **Forgot password**: a "Forgot password?" link on the sign-in form sends a reset
+  email; clicking the link opens /reset to choose a new password.
+  → In Supabase, make sure your Redirect URLs allow `https://<your-site>/**`
+    (Authentication → URL Configuration) so the reset link returns to your site.
+- **Auto-household**: every user now gets a household automatically on login, so the
+  "no household / invite code won't generate" issue can't happen to new users.
+
+## PWA — installable app (this upload)
+Guardly is now installable like a native app:
+- On Android/Chrome a "⬇ Install app" button appears in the dashboard top bar,
+  and browsers offer "Add to Home Screen".
+- On iPhone: Safari → Share → "Add to Home Screen" (Apple doesn't allow an
+  automatic install button, but it works the same once added).
+- It opens full-screen with the Guardly shield icon, no browser bars.
+- The service worker is network-first, so deploys are always fresh — users won't
+  get stuck on an old cached version.
+No setup needed — it just works once deployed. (PWA features require the site to
+be served over HTTPS, which your Cloudflare Pages site already is.)

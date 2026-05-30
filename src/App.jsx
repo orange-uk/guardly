@@ -9,6 +9,7 @@ import InstallPage from './pages/InstallPage'
 import SettingsPage from './pages/SettingsPage'
 import LandingPage from './pages/LandingPage'
 import OnboardingFlow from './onboarding/OnboardingFlow'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 // Protects the /app area. If Supabase is configured and there's no user,
 // bounce to the landing page. Before keys are added, it lets everyone
@@ -26,6 +27,7 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/reset" element={<ResetPasswordPage />} />
         <Route path="/onboarding" element={<RequireAuth><OnboardingFlow /></RequireAuth>} />
         <Route path="/app" element={<RequireAuth><Layout /></RequireAuth>}>
           <Route index element={<Dashboard />} />

@@ -93,6 +93,17 @@ function AuthCard({ mode, setMode, onClose }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [checkInbox, setCheckInbox] = useState(false)
+  const [forgotSent, setForgotSent] = useState(false)
+
+  async function handleForgot() {
+    if (!email.trim()) { setError('Enter your email above first, then tap “Forgot password”.'); return }
+    setLoading(true); setError(null)
+    try {
+      await auth.resetPassword(email)
+      setForgotSent(true)
+    } catch (err) { setError(err.message || 'Could not send reset email.') }
+    finally { setLoading(false) }
+  }
 
   async function submit(e) {
     e.preventDefault()
@@ -164,6 +175,20 @@ function AuthCard({ mode, setMode, onClose }) {
               Didn't get it? Check your spam folder, or wait a minute and try again. Links expire after a while, so use the most recent email.
             </p>
           </div>
+        ) : forgotSent ? (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#E8F5EE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, margin: '0 auto 18px' }}>🔑</div>
+            <h1 style={{ fontFamily: FONT_D, fontSize: 24, marginBottom: 10 }}>Reset link sent</h1>
+            <p style={{ color: '#5B655F', fontSize: 14.5, lineHeight: 1.65, marginBottom: 24 }}>
+              We've emailed a password reset link to <strong>{email}</strong>. Click it to choose a new password.
+            </p>
+            <button onClick={() => { setForgotSent(false); setMode('login') }} className="gx-btn" style={{ width: '100%' }}>
+              Back to sign in
+            </button>
+            <p style={{ fontSize: 12.5, color: '#9AA39D', marginTop: 16, lineHeight: 1.6 }}>
+              Didn't get it? Check your spam folder. The link expires after a while, so use the most recent email.
+            </p>
+          </div>
         ) : (
         <>
         <h1 style={{ fontFamily: FONT_D, fontSize: 26, marginBottom: 6 }}>
@@ -191,6 +216,11 @@ function AuthCard({ mode, setMode, onClose }) {
           <Field label="Password">
             <input className="gx-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} />
           </Field>
+          {mode === 'login' && (
+            <button type="button" onClick={handleForgot} style={{ alignSelf: 'flex-start', fontSize: 13, color: '#1F9D6B', fontWeight: 600, marginTop: -4 }}>
+              Forgot password?
+            </button>
+          )}
           <button type="submit" className="gx-btn" disabled={loading} style={{ marginTop: 6, width: '100%' }}>
             {loading ? 'Just a moment…' : mode === 'login' ? 'Sign in' : 'Create account'}
           </button>
