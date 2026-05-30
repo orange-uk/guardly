@@ -1,96 +1,139 @@
 import React, { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { getProfiles } from '../api'
+import { useAuth } from '../lib/AuthContext'
+import { getOwnedProfileIds } from '../lib/AuthContext'
+import { useIsMobile } from '../hooks/useMediaQuery'
 
-const styles = {
-  app: { display: 'flex', flexDirection: 'column', minHeight: '100vh' },
-  topbar: {
-    background: '#fff', borderBottom: '0.5px solid #E4E4E0',
-    padding: '0 24px', height: 52, display: 'flex',
-    alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
-  },
-  logo: { display: 'flex', alignItems: 'center', gap: 10, fontWeight: 500, fontSize: 16 },
-  logoIcon: {
-    width: 30, height: 30, borderRadius: 8, background: '#1D9E75',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: '#fff', fontSize: 15
-  },
-  body: { display: 'flex', flex: 1 },
-  sidebar: {
-    width: 210, background: '#fff', borderRight: '0.5px solid #E4E4E0',
-    padding: '16px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2
-  },
-  sectionLabel: {
-    fontSize: 10, fontWeight: 500, textTransform: 'uppercase',
-    letterSpacing: '0.08em', color: '#9B9B97', padding: '8px 8px 4px'
-  },
-  navItem: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '7px 10px', borderRadius: 6, fontSize: 13,
-    color: '#6B6B68', cursor: 'pointer', border: 'none', background: 'none',
-    width: '100%', textAlign: 'left'
-  },
-  main: { flex: 1, padding: '28px 32px', overflowY: 'auto' },
+const FONT_D = "'Fraunces', Georgia, serif"
+const AVATARS = ['🦊','🐻','🐼','🐰','🦁','🐨','🐸','🐯']
+
+function Logo({ size = 30 }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: size * 0.27,
+      background: 'linear-gradient(160deg,#27B07A,#1F9D6B)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      boxShadow: '0 2px 8px rgba(31,157,107,0.35)'
+    }}>
+      <svg width={size * 0.6} height={size * 0.6} viewBox="0 0 24 24" fill="none">
+        <path d="M12 2 L20 5.5 L20 12 C20 17 16.5 20.5 12 22 C7.5 20.5 4 17 4 12 L4 5.5 Z" fill="#fff" />
+        <path d="M8.5 12 l2.5 2.5 l4.5 -5.5" stroke="#1F9D6B" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
+  )
 }
-
-const AVATARS = ['👦', '👧', '🧒', '👨', '👩', '🧑']
 
 export default function Layout() {
   const [profiles, setProfiles] = useState([])
+  const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
+  const auth = useAuth()
 
-  useEffect(() => {
-    getProfiles()
-      .then(data => setProfiles(data.data || []))
-      .catch(() => setProfiles([]))
-  }, [])
+  useEffect(() => { load() }, [])
 
-  const activeStyle = { background: '#E1F5EE', color: '#0F6E56', fontWeight: 500 }
-  const inactiveStyle = {}
+  async function load() {
+    try {
+      const data = await getProfiles()
+      let list = data.data || []
+      if (auth?.user) {
+        const owned = await getOwnedProfileIds(auth.user.id)
+        if (owned && owned.length) list = list.filter(p => owned.includes(p.id))
+      }
+      setProfiles(list)
+    } catch (e) { setProfiles([]) }
+  }
+
+  const navItem = (isActive) => ({
+    display: 'flex', alignItems: 'center', gap: 11, padding: '10px 13px',
+    borderRadius: 12, fontSize: 14.5, fontWeight: isActive ? 600 : 500,
+    color: isActive ? '#0E5E42' : '#5B655F',
+    background: isActive ? '#E8F5EE' : 'transparent',
+    width: '100%', textAlign: 'left', transition: 'background 0.12s'
+  })
+
+  function cleanName(p, i) {
+    const n = (p.name || '').split(' | ')[0]
+    return n || 'Child ' + (i + 1)
+  }
+
+  const SidebarInner = () => (
+    <>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9AA39D', padding: '4px 13px 6px' }}>Overview</div>
+      <NavLink to="/app" end onClick={() => setMenuOpen(false)} style={({ isActive }) => navItem(isActive)}>
+        <span style={{ fontSize: 17 }}>🏠</span> Dashboard
+      </NavLink>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9AA39D', padding: '14px 13px 6px' }}>Children</div>
+      {profiles.map((p, i) => (
+        <NavLink key={p.id} to={`/app/profile/${p.id}`} onClick={() => setMenuOpen(false)} style={({ isActive }) => navItem(isActive)}>
+          <span style={{ fontSize: 17 }}>{AVATARS[i % AVATARS.length]}</span> {cleanName(p, i)}
+        </NavLink>
+      ))}
+      <button onClick={() => { navigate('/app'); setMenuOpen(false) }} style={{ ...navItem(false), color: '#1F9D6B', fontWeight: 600 }}>
+        <span style={{ fontSize: 17 }}>＋</span> Add child
+      </button>
+      <div style={{ flex: 1 }} />
+      <div style={{ borderTop: '1px solid #EAE5DA', paddingTop: 8, marginTop: 8 }}>
+        <NavLink to="/app/settings" onClick={() => setMenuOpen(false)} style={({ isActive }) => navItem(isActive)}>
+          <span style={{ fontSize: 17 }}>⚙️</span> Settings
+        </NavLink>
+        {auth?.user && (
+          <button onClick={() => { auth.signOut(); navigate('/') }} style={{ ...navItem(false) }}>
+            <span style={{ fontSize: 17 }}>↩</span> Sign out
+          </button>
+        )}
+      </div>
+    </>
+  )
 
   return (
-    <div style={styles.app}>
-      <div style={styles.topbar}>
-        <div style={styles.logo}>
-          <div style={styles.logoIcon}>🛡</div>
-          Guardly
+    <div style={{ minHeight: '100vh', background: '#FBF9F4', display: 'flex', flexDirection: 'column' }}>
+      {/* Top bar */}
+      <div style={{
+        background: '#fff', borderBottom: '1px solid #EAE5DA', height: 60,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 20px', position: 'sticky', top: 0, zIndex: 50
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+          {isMobile && (
+            <button onClick={() => setMenuOpen(true)} aria-label="Menu" style={{ fontSize: 22, padding: '4px 8px', color: '#1A2420' }}>☰</button>
+          )}
+          <Logo size={30} />
+          <span style={{ fontFamily: FONT_D, fontWeight: 700, fontSize: 19 }}>Guardly</span>
         </div>
-        <span style={{ fontSize: 12, color: '#9B9B97' }}>Family safety</span>
+        <span style={{ fontSize: 13, color: '#9AA39D' }}>{auth?.user?.email || 'Family safety'}</span>
       </div>
-      <div style={styles.body}>
-        <div style={styles.sidebar}>
-          <div style={styles.sectionLabel}>Overview</div>
-          <NavLink to="/app" end style={({ isActive }) => ({
-            ...styles.navItem, ...(isActive ? activeStyle : inactiveStyle)
-          })}>
-            🏠 Dashboard
-          </NavLink>
 
-          <div style={{ ...styles.sectionLabel, marginTop: 8 }}>Children</div>
-          {profiles.map((p, i) => (
-            <NavLink key={p.id} to={`/app/profile/${p.id}`} style={({ isActive }) => ({
-              ...styles.navItem, ...(isActive ? activeStyle : inactiveStyle)
-            })}>
-              {AVATARS[i % AVATARS.length]} {p.name || 'Child ' + (i + 1)}
-            </NavLink>
-          ))}
-          <button style={{ ...styles.navItem, color: '#1D9E75', marginTop: 2 }}
-            onClick={() => navigate('/app')}>
-            + Add child
-          </button>
+      <div style={{ display: 'flex', flex: 1 }}>
+        {/* Desktop sidebar */}
+        {!isMobile && (
+          <aside style={{
+            width: 230, background: '#fff', borderRight: '1px solid #EAE5DA',
+            padding: '16px 12px', display: 'flex', flexDirection: 'column', flexShrink: 0
+          }}>
+            <SidebarInner />
+          </aside>
+        )}
 
-          <div style={{ flex: 1 }} />
-
-          <div style={{ borderTop: '0.5px solid #E4E4E0', paddingTop: 8, marginTop: 8 }}>
-            <NavLink to="/app/settings" style={({ isActive }) => ({
-              ...styles.navItem, ...(isActive ? activeStyle : inactiveStyle)
-            })}>
-              ⚙️ Settings
-            </NavLink>
+        {/* Mobile drawer */}
+        {isMobile && menuOpen && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+            <div onClick={() => setMenuOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(26,36,32,0.4)' }} />
+            <aside className="fade-in" style={{
+              position: 'absolute', left: 0, top: 0, bottom: 0, width: 260, background: '#fff',
+              padding: '16px 12px', display: 'flex', flexDirection: 'column', boxShadow: '4px 0 24px rgba(0,0,0,0.12)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 13px 16px' }}>
+                <Logo size={28} /><span style={{ fontFamily: FONT_D, fontWeight: 700, fontSize: 18 }}>Guardly</span>
+              </div>
+              <SidebarInner />
+            </aside>
           </div>
-        </div>
-        <main style={styles.main}>
-          <Outlet />
+        )}
+
+        <main style={{ flex: 1, padding: isMobile ? '20px 18px 40px' : '32px 36px', maxWidth: 980, width: '100%', margin: '0 auto' }}>
+          <Outlet context={{ reloadProfiles: load }} />
         </main>
       </div>
     </div>

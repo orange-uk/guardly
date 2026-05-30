@@ -1,75 +1,38 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import { getProfiles, createProfile, deleteProfile } from '../api'
+import { useAuth, getOwnedProfileIds, linkProfileToUser, unlinkProfile } from '../lib/AuthContext'
 
-const card = {
-  background: '#fff', border: '0.5px solid #E4E4E0',
-  borderRadius: 12, padding: '20px 24px', marginBottom: 12
-}
-
-const PROFILE_AVATARS = ['👦', '👧', '🧒', '👨', '👩', '🧑']
-const PROFILE_COLORS = ['#E1F5EE', '#E6F1FB', '#FAEEDA', '#FBEAF0', '#EAF3DE', '#EEEDFE']
-const PROFILE_TEXT_COLORS = ['#0F6E56', '#185FA5', '#854F0B', '#993556', '#3B6D11', '#534AB7']
+const FONT_D = "'Fraunces', Georgia, serif"
+const AVATARS = ['🦊','🐻','🐼','🐰','🦁','🐨','🐸','🐯']
+const TINTS = ['#E8F5EE','#E9F1F8','#FBF1DD','#FCEDE7','#EFEAF8','#FBEFF4']
+const TINT_TEXT = ['#0E5E42','#3E7CB1','#9A6B12','#C2502F','#6B4D9E','#A33866']
 
 function ProfileCard({ profile, index, onDelete, onClick }) {
-  const [confirming, setConfirming] = useState(false)
-  const avatar = PROFILE_AVATARS[index % PROFILE_AVATARS.length]
-  const bg = PROFILE_COLORS[index % PROFILE_COLORS.length]
-  const tc = PROFILE_TEXT_COLORS[index % PROFILE_TEXT_COLORS.length]
-
-  function handleDelete(e) {
-    e.stopPropagation()
-    if (confirming) {
-      onDelete(profile.id)
-    } else {
-      setConfirming(true)
-      setTimeout(() => setConfirming(false), 3000)
-    }
-  }
+  const [confirm, setConfirm] = useState(false)
+  const name = (profile.name || '').split(' | ')[0] || 'Child ' + (index + 1)
+  const device = (profile.name || '').split(' | ')[1]
+  const tint = TINTS[index % TINTS.length]
+  const tintText = TINT_TEXT[index % TINT_TEXT.length]
 
   return (
-    <div
-      onClick={onClick}
-      style={{
-        ...card, cursor: 'pointer', position: 'relative',
-        transition: 'border-color 0.15s', marginBottom: 0
-      }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = '#5DCAA5'}
-      onMouseLeave={e => e.currentTarget.style.borderColor = '#E4E4E0'}
-    >
-      <button
-        onClick={handleDelete}
-        style={{
-          position: 'absolute', top: 12, right: 12,
-          background: confirming ? '#FCEBEB' : 'none',
-          border: confirming ? '0.5px solid #F0A0A0' : 'none',
-          borderRadius: 6, padding: '3px 8px',
-          fontSize: 11, color: confirming ? '#A32D2D' : '#C0C0BB',
-          cursor: 'pointer', fontWeight: confirming ? 500 : 400
-        }}
-      >
-        {confirming ? 'Confirm delete' : '✕'}
+    <div onClick={onClick} className="gx-card" style={{ padding: 22, cursor: 'pointer', position: 'relative', transition: 'transform 0.15s, box-shadow 0.15s' }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = 'var(--shadow)' }}
+      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)' }}>
+      <button onClick={e => { e.stopPropagation(); if (confirm) onDelete(profile.id); else { setConfirm(true); setTimeout(() => setConfirm(false), 3000) } }}
+        style={{ position: 'absolute', top: 14, right: 14, fontSize: confirm ? 11 : 16, fontWeight: confirm ? 700 : 400,
+          color: confirm ? '#C24238' : '#C9CFC9', background: confirm ? '#FBEAE8' : 'transparent',
+          padding: confirm ? '4px 9px' : '2px 6px', borderRadius: 8 }}>
+        {confirm ? 'Delete?' : '✕'}
       </button>
-
-      <div style={{
-        width: 48, height: 48, borderRadius: 12,
-        background: bg, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', fontSize: 24, marginBottom: 12
-      }}>
-        {avatar}
+      <div style={{ width: 54, height: 54, borderRadius: 16, background: tint, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, marginBottom: 14 }}>
+        {AVATARS[index % AVATARS.length]}
       </div>
-
-      <div style={{ fontWeight: 500, fontSize: 15, marginBottom: 4 }}>
-        {profile.name || 'Unnamed profile'}
-      </div>
-
-      <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        marginTop: 8, padding: '3px 10px', borderRadius: 20,
-        background: bg, fontSize: 11, fontWeight: 500, color: tc
-      }}>
-        ✓ Protected
-      </div>
+      <div style={{ fontFamily: FONT_D, fontWeight: 600, fontSize: 19, marginBottom: device ? 2 : 8 }}>{name}</div>
+      {device
+        ? <div style={{ fontSize: 13, color: '#5B655F', marginBottom: 10 }}>📱 {device}</div>
+        : <div style={{ fontSize: 13, color: '#9AA39D', marginBottom: 10 }}>No device yet</div>}
+      <span className="gx-pill" style={{ background: tint, color: tintText }}>✓ Protected</span>
     </div>
   )
 }
@@ -81,18 +44,22 @@ export default function Dashboard() {
   const [newName, setNewName] = useState('')
   const [error, setError] = useState(null)
   const navigate = useNavigate()
+  const auth = useAuth()
+  const ctx = useOutletContext()
 
-  useEffect(() => { loadProfiles() }, [])
+  useEffect(() => { load() }, [])
 
-  async function loadProfiles() {
+  async function load() {
     try {
       const data = await getProfiles()
-      setProfiles(data.data || [])
-    } catch (e) {
-      setError('Could not load profiles. Check your connection.')
-    } finally {
-      setLoading(false)
-    }
+      let list = data.data || []
+      if (auth?.user) {
+        const owned = await getOwnedProfileIds(auth.user.id)
+        if (owned && owned.length) list = list.filter(p => owned.includes(p.id))
+      }
+      setProfiles(list)
+    } catch (e) { setError('Could not load your children. Check your connection.') }
+    finally { setLoading(false) }
   }
 
   async function handleCreate(e) {
@@ -101,107 +68,50 @@ export default function Dashboard() {
     setCreating(true)
     try {
       const result = await createProfile({ name: newName.trim() })
+      const id = result.data?.id
+      if (auth?.user && id) await linkProfileToUser(auth.user.id, id)
       setNewName('')
-      await loadProfiles()
-      if (result.data?.id) navigate(`/app/profile/${result.data.id}`)
-    } catch (e) {
-      setError('Could not create profile: ' + e.message)
-    } finally {
-      setCreating(false)
-    }
+      await load(); ctx?.reloadProfiles?.()
+      if (id) navigate(`/app/profile/${id}`)
+    } catch (e) { setError('Could not create profile: ' + e.message) }
+    finally { setCreating(false) }
   }
 
   async function handleDelete(id) {
     try {
       await deleteProfile(id)
-      setProfiles(profiles.filter(p => p.id !== id))
-    } catch (e) {
-      setError('Could not delete profile: ' + e.message)
-    }
+      if (auth?.user) await unlinkProfile(auth.user.id, id)
+      setProfiles(profiles.filter(p => p.id !== id)); ctx?.reloadProfiles?.()
+    } catch (e) { setError('Could not delete profile: ' + e.message) }
   }
 
   return (
-    <div>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 500, marginBottom: 4 }}>Your family</h1>
-        <p style={{ color: '#6B6B68', fontSize: 13 }}>
-          Each profile controls what a child can access online — on any device, anywhere.
-        </p>
+    <div className="fade-up">
+      <div style={{ marginBottom: 26 }}>
+        <h1 style={{ fontFamily: FONT_D, fontSize: 30, fontWeight: 600, marginBottom: 4 }}>Your family</h1>
+        <p style={{ color: '#5B655F', fontSize: 15 }}>Each child has a profile that protects their devices — at home and everywhere else.</p>
       </div>
 
       {error && (
-        <div style={{ ...card, background: '#FCEBEB', border: '0.5px solid #F0A0A0', marginBottom: 16 }}>
-          <p style={{ color: '#A32D2D', fontSize: 13 }}>⚠️ {error}</p>
+        <div className="gx-card" style={{ background: '#FBEAE8', borderColor: '#E9B5AF', padding: '14px 18px', marginBottom: 18 }}>
+          <p style={{ color: '#C24238', fontSize: 14 }}>⚠️ {error}</p>
         </div>
       )}
 
-      {loading ? (
-        <p style={{ color: '#9B9B97', fontSize: 13 }}>Loading…</p>
-      ) : (
-        <>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-            gap: 12, marginBottom: 24
-          }}>
-            {profiles.map((p, i) => (
-              <ProfileCard
-                key={p.id}
-                profile={p}
-                index={i}
-                onDelete={handleDelete}
-                onClick={() => navigate(`/app/profile/${p.id}`)}
-              />
-            ))}
-
-            <form onSubmit={handleCreate} style={{
-              ...card, border: '0.5px dashed #C0C0BB',
-              background: '#FAFAF8', marginBottom: 0
-            }}>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>+</div>
-              <div style={{ fontWeight: 500, marginBottom: 12, color: '#6B6B68', fontSize: 14 }}>
-                Add a child
-              </div>
-              <input
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                placeholder="Child's name"
-                style={{
-                  width: '100%', padding: '8px 10px', borderRadius: 6,
-                  border: '0.5px solid #E4E4E0', marginBottom: 8, fontSize: 13
-                }}
-              />
-              <button type="submit" disabled={creating || !newName.trim()} style={{
-                width: '100%', padding: '8px', borderRadius: 6,
-                background: '#1D9E75', color: '#fff', border: 'none',
-                fontWeight: 500, fontSize: 13, opacity: creating ? 0.7 : 1, cursor: 'pointer'
-              }}>
-                {creating ? 'Creating…' : 'Create profile'}
-              </button>
-            </form>
-          </div>
-
-          {profiles.length === 0 && (
-            <div style={card}>
-              <h2 style={{ fontSize: 14, fontWeight: 500, marginBottom: 12 }}>Getting started</h2>
-              {[
-                ['1', 'Add a profile for each child above'],
-                ['2', 'Click a profile and set up content filters'],
-                ['3', 'Go to Install to put the profile on their devices'],
-                ['4', 'Check Activity to see what\'s being blocked'],
-              ].map(([n, text]) => (
-                <div key={n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
-                  <div style={{
-                    width: 22, height: 22, borderRadius: '50%', background: '#1D9E75',
-                    color: '#fff', fontSize: 11, fontWeight: 500,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                  }}>{n}</div>
-                  <span style={{ fontSize: 13, color: '#6B6B68', paddingTop: 2 }}>{text}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+      {loading ? <p style={{ color: '#9AA39D' }}>Loading…</p> : (
+        <div className="gx-feat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 16 }}>
+          {profiles.map((p, i) => (
+            <ProfileCard key={p.id} profile={p} index={i} onDelete={handleDelete} onClick={() => navigate(`/app/profile/${p.id}`)} />
+          ))}
+          <form onSubmit={handleCreate} className="gx-card" style={{ padding: 22, border: '1.5px dashed #CFD8D2', background: '#FCFBF7' }}>
+            <div style={{ width: 54, height: 54, borderRadius: 16, background: '#F3EEE4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, color: '#9AA39D', marginBottom: 14 }}>＋</div>
+            <div style={{ fontFamily: FONT_D, fontWeight: 600, fontSize: 17, marginBottom: 12 }}>Add a child</div>
+            <input className="gx-input" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Child's name" style={{ marginBottom: 10 }} />
+            <button type="submit" className="gx-btn" disabled={creating || !newName.trim()} style={{ width: '100%', opacity: (creating || !newName.trim()) ? 0.6 : 1 }}>
+              {creating ? 'Creating…' : 'Create profile'}
+            </button>
+          </form>
+        </div>
       )}
     </div>
   )

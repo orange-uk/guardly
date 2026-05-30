@@ -1,66 +1,55 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getProfileSection, updateProfileSection, updateProfile, addToList, getLogs, getProfiles } from '../api'
+import {
+  getProfileSection, updateProfileSection, updateProfile, addToList,
+  getLogs, getAnalytics, updateSchedule, setPause, getProfiles
+} from '../api'
 
-const card = {
-  background: '#fff', border: '0.5px solid #E4E4E0',
-  borderRadius: 12, padding: '20px 24px', marginBottom: 12
-}
+const FONT_D = "'Fraunces', Georgia, serif"
+const AVATARS = ['🦊','🐻','🐼','🐰','🦁','🐨','🐸','🐯']
+const TINTS = ['#E8F5EE','#E9F1F8','#FBF1DD','#FCEDE7','#EFEAF8','#FBEFF4']
+const TINT_TEXT = ['#0E5E42','#3E7CB1','#9A6B12','#C2502F','#6B4D9E','#A33866']
 
 const CATEGORIES = [
-  { id: 'porn',            label: 'Adult content',    desc: 'Explicit & adult sites',        icon: '🔞' },
-  { id: 'gambling',        label: 'Gambling',         desc: 'Betting & casino sites',        icon: '🎰' },
-  { id: 'dating',          label: 'Dating',           desc: 'Dating apps & sites',           icon: '💘' },
-  { id: 'piracy',          label: 'Piracy',           desc: 'Torrent & piracy sites',        icon: '🏴‍☠️' },
-  { id: 'socialNetworks',  label: 'Social media',     desc: 'Instagram, TikTok, X & more',  icon: '📱' },
-  { id: 'videoStreaming',  label: 'Video streaming',  desc: 'YouTube, Netflix, Disney+',     icon: '📺' },
-  { id: 'gaming',          label: 'Gaming',           desc: 'Games & gaming platforms',      icon: '🎮' },
-  { id: 'drugs',           label: 'Drugs',            desc: 'Drug-related content',          icon: '⚠️' },
+  { id: 'porn', label: 'Adult content', desc: 'Explicit & adult sites', icon: '🔞' },
+  { id: 'gambling', label: 'Gambling', desc: 'Betting & casino', icon: '🎰' },
+  { id: 'dating', label: 'Dating', desc: 'Dating apps & sites', icon: '💘' },
+  { id: 'piracy', label: 'Piracy', desc: 'Torrent & piracy', icon: '🏴‍☠️' },
+  { id: 'socialNetworks', label: 'Social media', desc: 'Instagram, TikTok, X', icon: '📱' },
+  { id: 'videoStreaming', label: 'Video streaming', desc: 'YouTube, Netflix', icon: '📺' },
+  { id: 'gaming', label: 'Gaming', desc: 'Games & platforms', icon: '🎮' },
+  { id: 'drugs', label: 'Drugs', desc: 'Drug-related content', icon: '⚠️' },
 ]
 
 const SERVICES = [
   { group: 'Social media', items: [
-    { id: 'instagram', label: 'Instagram', icon: '📸' },
-    { id: 'tiktok', label: 'TikTok', icon: '🎵' },
-    { id: 'snapchat', label: 'Snapchat', icon: '👻' },
-    { id: 'twitter', label: 'X / Twitter', icon: '🐦' },
-    { id: 'facebook', label: 'Facebook', icon: '👤' },
-    { id: 'reddit', label: 'Reddit', icon: '🟠' },
-    { id: 'pinterest', label: 'Pinterest', icon: '📌' },
-    { id: 'discord', label: 'Discord', icon: '💬' },
-    { id: 'whatsapp', label: 'WhatsApp', icon: '💬' },
-    { id: 'telegram', label: 'Telegram', icon: '✈️' },
-    { id: 'bereal', label: 'BeReal', icon: '📷' },
+    ['instagram','Instagram','📸'],['tiktok','TikTok','🎵'],['snapchat','Snapchat','👻'],
+    ['twitter','X / Twitter','🐦'],['facebook','Facebook','👤'],['reddit','Reddit','🟠'],
+    ['pinterest','Pinterest','📌'],['discord','Discord','💬'],['whatsapp','WhatsApp','💬'],
+    ['telegram','Telegram','✈️'],['bereal','BeReal','📷'],
   ]},
   { group: 'Video & streaming', items: [
-    { id: 'youtube', label: 'YouTube', icon: '▶️' },
-    { id: 'netflix', label: 'Netflix', icon: '🎬' },
-    { id: 'disneyplus', label: 'Disney+', icon: '✨' },
-    { id: 'twitch', label: 'Twitch', icon: '🟣' },
-    { id: 'primevideo', label: 'Prime Video', icon: '📦' },
-    { id: 'spotify', label: 'Spotify', icon: '🎧' },
-    { id: 'soundcloud', label: 'SoundCloud', icon: '🎵' },
+    ['youtube','YouTube','▶️'],['netflix','Netflix','🎬'],['disneyplus','Disney+','✨'],
+    ['twitch','Twitch','🟣'],['primevideo','Prime Video','📦'],['spotify','Spotify','🎧'],
   ]},
   { group: 'Gaming', items: [
-    { id: 'roblox', label: 'Roblox', icon: '🧱' },
-    { id: 'fortnite', label: 'Fortnite', icon: '🔫' },
-    { id: 'minecraft', label: 'Minecraft', icon: '⛏️' },
-    { id: 'steam', label: 'Steam', icon: '🎮' },
-    { id: 'epicgames', label: 'Epic Games', icon: '🎮' },
-    { id: 'xbox', label: 'Xbox', icon: '🟢' },
-    { id: 'playstation', label: 'PlayStation', icon: '🎮' },
+    ['roblox','Roblox','🧱'],['fortnite','Fortnite','🔫'],['minecraft','Minecraft','⛏️'],
+    ['steam','Steam','🎮'],['epicgames','Epic Games','🎮'],['xbox','Xbox','🟢'],['playstation','PlayStation','🎮'],
   ]},
   { group: 'Other', items: [
-    { id: 'onlyfans', label: 'OnlyFans', icon: '🔞' },
-    { id: '9gag', label: '9GAG', icon: '😂' },
-    { id: 'vk', label: 'VK', icon: '👤' },
-    { id: 'dailymotion', label: 'Dailymotion', icon: '▶️' },
+    ['onlyfans','OnlyFans','🔞'],['9gag','9GAG','😂'],['vk','VK','👤'],['dailymotion','Dailymotion','▶️'],
   ]},
 ]
 
-const AVATARS = ['👦', '👧', '🧒', '👨', '👩', '🧑']
-const COLORS = ['#E1F5EE','#E6F1FB','#FAEEDA','#FBEAF0','#EAF3DE','#EEEDFE']
-const TEXT_COLORS = ['#0F6E56','#185FA5','#854F0B','#993556','#3B6D11','#534AB7']
+const DAYS = [['Mon','MO'],['Tue','TU'],['Wed','WE'],['Thu','TH'],['Fri','FR'],['Sat','SA'],['Sun','SU']]
+
+function Toggle({ on, onClick, busy }) {
+  return <button className={'gx-toggle' + (on ? ' on' : '')} onClick={onClick} style={{ opacity: busy ? 0.5 : 1 }} aria-pressed={on} />
+}
+
+function Card({ children, style }) {
+  return <div className="gx-card" style={{ padding: 22, marginBottom: 14, ...style }}>{children}</div>
+}
 
 export default function ProfilePage() {
   const { profileId } = useParams()
@@ -71,368 +60,350 @@ export default function ProfilePage() {
   const [denylist, setDenylist] = useState([])
   const [allowlist, setAllowlist] = useState([])
   const [logs, setLogs] = useState([])
+  const [topBlocked, setTopBlocked] = useState([])
   const [loading, setLoading] = useState(true)
   const [denyInput, setDenyInput] = useState('')
   const [allowInput, setAllowInput] = useState('')
   const [saving, setSaving] = useState(null)
   const [error, setError] = useState(null)
-  const [serviceSearch, setServiceSearch] = useState('')
-  const [profileName, setProfileName] = useState('')
-  const [profileIndex, setProfileIndex] = useState(0)
+  const [search, setSearch] = useState('')
+  const [name, setName] = useState('')
+  const [device, setDevice] = useState('')
+  const [idx, setIdx] = useState(0)
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState('')
   const [editDevice, setEditDevice] = useState('')
-  const [deviceName, setDeviceName] = useState('')
+  const [paused, setPaused] = useState(false)
+  const [pausing, setPausing] = useState(false)
+  // schedule
+  const [schedDays, setSchedDays] = useState([])
+  const [schedFrom, setSchedFrom] = useState('21:00')
+  const [schedTo, setSchedTo] = useState('07:00')
+  const [schedSaving, setSchedSaving] = useState(false)
+  const [schedSaved, setSchedSaved] = useState(false)
 
   useEffect(() => { loadAll() }, [profileId])
 
   async function loadAll() {
     setLoading(true)
     try {
-      const [pc, deny, allow, allProfiles] = await Promise.all([
+      const [pc, deny, allow, all] = await Promise.all([
         getProfileSection(profileId, 'parentalControl'),
         getProfileSection(profileId, 'denylist'),
         getProfileSection(profileId, 'allowlist'),
         getProfiles(),
       ])
-      const cats = {}
-      ;(pc.data?.categories || []).forEach(c => { cats[c.id] = true })
-      setCategories(cats)
-      const svcs = {}
-      ;(pc.data?.services || []).forEach(s => { svcs[s.id] = true })
-      setServices(svcs)
-      setDenylist(deny.data || [])
+      const cats = {}; (pc.data?.categories || []).forEach(c => cats[c.id] = true); setCategories(cats)
+      const svcs = {}; (pc.data?.services || []).forEach(s => svcs[s.id] = true); setServices(svcs)
+      const dl = deny.data || []
+      setDenylist(dl.filter(d => d.id !== '*'))
+      setPaused(dl.some(d => d.id === '*'))
       setAllowlist(allow.data || [])
-      const profiles = allProfiles.data || []
-      const idx = profiles.findIndex(p => p.id === profileId)
-      setProfileIndex(idx >= 0 ? idx : 0)
-      const found = profiles.find(p => p.id === profileId)
-      const name = found?.name || profileId
-      setProfileName(name)
-      // Extract device name from profile name if stored as "Name | Device"
-      if (name.includes(' | ')) {
-        const parts = name.split(' | ')
-        setProfileName(parts[0])
-        setDeviceName(parts[1])
-      } else {
-        setProfileName(name)
-        setDeviceName('')
+      // recreation schedule
+      const rec = pc.data?.recreation
+      if (rec?.times?.monday) {
+        // best-effort parse: we store our own simple schedule below
       }
-    } catch (e) {
-      setError('Could not load profile settings.')
-    } finally {
-      setLoading(false)
-    }
+      const profiles = all.data || []
+      const i = profiles.findIndex(p => p.id === profileId); setIdx(i >= 0 ? i : 0)
+      const found = profiles.find(p => p.id === profileId)
+      const raw = found?.name || profileId
+      const parts = raw.split(' | ')
+      setName(parts[0]); setDevice(parts[1] || '')
+    } catch (e) { setError('Could not load profile.') }
+    finally { setLoading(false) }
   }
 
-  async function loadLogs() {
+  async function loadActivity() {
     try {
-      const data = await getLogs(profileId)
-      setLogs(data.data || [])
-    } catch (e) { setLogs([]) }
+      const [l, tb] = await Promise.all([getLogs(profileId), getAnalytics(profileId, 'topBlocked')])
+      setLogs(l.data || []); setTopBlocked(tb.data || [])
+    } catch (e) { setLogs([]); setTopBlocked([]) }
   }
 
-  async function saveParentalControl(updatedCats, updatedSvcs) {
-    const activeCategories = Object.entries(updatedCats).filter(([,v]) => v).map(([k]) => ({ id: k, active: true }))
-    const activeServices = Object.entries(updatedSvcs).filter(([,v]) => v).map(([k]) => ({ id: k, active: true }))
+  async function save(cats, svcs) {
     await updateProfileSection(profileId, 'parentalControl', {
-      categories: activeCategories,
-      services: activeServices
+      categories: Object.entries(cats).filter(([,v]) => v).map(([k]) => ({ id: k, active: true })),
+      services: Object.entries(svcs).filter(([,v]) => v).map(([k]) => ({ id: k, active: true })),
     })
   }
-
-  async function toggleCategory(catId) {
-    const updated = { ...categories, [catId]: !categories[catId] }
-    setCategories(updated)
-    setSaving(catId)
-    try { await saveParentalControl(updated, services) }
-    catch (e) { setCategories(categories); setError('Could not save.') }
-    finally { setSaving(null) }
+  async function toggleCat(id) {
+    const u = { ...categories, [id]: !categories[id] }; setCategories(u); setSaving(id)
+    try { await save(u, services) } catch { setCategories(categories); setError('Could not save.') } finally { setSaving(null) }
   }
-
-  async function toggleService(svcId) {
-    const updated = { ...services, [svcId]: !services[svcId] }
-    setServices(updated)
-    setSaving(svcId)
-    try { await saveParentalControl(categories, updated) }
-    catch (e) { setServices(services); setError('Could not save.') }
-    finally { setSaving(null) }
+  async function toggleSvc(id) {
+    const u = { ...services, [id]: !services[id] }; setServices(u); setSaving(id)
+    try { await save(categories, u) } catch { setServices(services); setError('Could not save.') } finally { setSaving(null) }
   }
-
   async function addDomain(type) {
-    const val = type === 'deny' ? denyInput.trim() : allowInput.trim()
-    if (!val) return
+    const val = (type === 'deny' ? denyInput : allowInput).trim(); if (!val) return
     try {
       await addToList(profileId, type === 'deny' ? 'denylist' : 'allowlist', { id: val, active: true })
       if (type === 'deny') { setDenylist([...denylist, { id: val }]); setDenyInput('') }
       else { setAllowlist([...allowlist, { id: val }]); setAllowInput('') }
-    } catch (e) { setError('Could not add domain: ' + e.message) }
+    } catch (e) { setError('Could not add: ' + e.message) }
   }
-
   async function saveEdit() {
     if (!editName.trim()) return
     const combined = editDevice.trim() ? editName.trim() + ' | ' + editDevice.trim() : editName.trim()
+    try { await updateProfile(profileId, { name: combined }); setName(editName.trim()); setDevice(editDevice.trim()); setEditing(false) }
+    catch { setError('Could not save name.') }
+  }
+  async function togglePause() {
+    setPausing(true)
+    try { await setPause(profileId, !paused); setPaused(!paused) }
+    catch { setError('Could not change pause state.') } finally { setPausing(false) }
+  }
+  async function saveScheduleNow() {
+    setSchedSaving(true); setSchedSaved(false)
     try {
-      await updateProfile(profileId, { name: combined })
-      setProfileName(editName.trim())
-      setDeviceName(editDevice.trim())
-      setEditing(false)
-    } catch (e) {
-      setError('Could not save name.')
-    }
+      // Map to engine recreation format: block during the window on chosen days
+      const times = {}
+      const dayMap = { MO:'monday',TU:'tuesday',WE:'wednesday',TH:'thursday',FR:'friday',SA:'saturday',SU:'sunday' }
+      Object.values(dayMap).forEach(d => { times[d] = [] })
+      schedDays.forEach(code => {
+        const day = dayMap[code]
+        times[day] = [{ start: schedFrom, end: schedTo }]
+      })
+      await updateSchedule(profileId, { times })
+      setSchedSaved(true); setTimeout(() => setSchedSaved(false), 2500)
+    } catch (e) { setError('Could not save schedule.') } finally { setSchedSaving(false) }
   }
 
-  const tabStyle = (t) => ({
-    padding: '8px 14px', fontSize: 13, cursor: 'pointer',
-    border: 'none', background: 'none',
-    color: tab === t ? '#1D9E75' : '#6B6B68',
-    borderBottom: tab === t ? '2px solid #1D9E75' : '2px solid transparent',
-    fontWeight: tab === t ? 500 : 400
-  })
-
-  const Toggle = ({ isOn, onToggle, id }) => (
-    <button onClick={onToggle} style={{
-      width: 36, height: 20, borderRadius: 10, border: 'none',
-      background: isOn ? '#1D9E75' : '#C8C8C4', cursor: 'pointer',
-      position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-      opacity: saving === id ? 0.6 : 1
+  const tab_ = (t, label, badge) => (
+    <button onClick={() => { setTab(t); if (t === 'activity') loadActivity() }} style={{
+      padding: '9px 15px', fontSize: 14, whiteSpace: 'nowrap',
+      color: tab === t ? '#0E5E42' : '#5B655F', fontWeight: tab === t ? 600 : 500,
+      borderBottom: tab === t ? '2px solid #1F9D6B' : '2px solid transparent'
     }}>
-      <span style={{
-        position: 'absolute', width: 16, height: 16, borderRadius: '50%',
-        background: '#fff', top: 2, left: isOn ? 18 : 2, transition: 'left 0.2s'
-      }} />
+      {label}{badge > 0 && <span style={{ marginLeft: 6, background: '#1F9D6B', color: '#fff', fontSize: 10, padding: '1px 6px', borderRadius: 999 }}>{badge}</span>}
     </button>
   )
 
-  const filteredServices = SERVICES.map(g => ({
-    ...g, items: g.items.filter(s => s.label.toLowerCase().includes(serviceSearch.toLowerCase()))
-  })).filter(g => g.items.length > 0)
-
-  const blockedServiceCount = Object.values(services).filter(Boolean).length
-  const bgColor = COLORS[profileIndex % COLORS.length]
-  const textColor = TEXT_COLORS[profileIndex % TEXT_COLORS.length]
-  const avatar = AVATARS[profileIndex % AVATARS.length]
+  const filtered = SERVICES.map(g => ({ ...g, items: g.items.filter(([,l]) => l.toLowerCase().includes(search.toLowerCase())) })).filter(g => g.items.length)
+  const blockedSvc = Object.values(services).filter(Boolean).length
+  const tint = TINTS[idx % TINTS.length], tintText = TINT_TEXT[idx % TINT_TEXT.length]
 
   return (
-    <div>
-      {/* Profile header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+    <div className="fade-up">
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 22, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: 14, background: bgColor,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0
-          }}>{avatar}</div>
+          <div style={{ width: 60, height: 60, borderRadius: 18, background: tint, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, flexShrink: 0 }}>
+            {AVATARS[idx % AVATARS.length]}
+          </div>
           {editing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <input
-                value={editName} onChange={e => setEditName(e.target.value)}
-                placeholder="Child's name"
-                style={{ padding: '6px 10px', borderRadius: 6, border: '0.5px solid #E4E4E0', fontSize: 15, fontWeight: 500 }}
-              />
-              <input
-                value={editDevice} onChange={e => setEditDevice(e.target.value)}
-                placeholder="Device name (e.g. Emma's iPhone)"
-                style={{ padding: '6px 10px', borderRadius: 6, border: '0.5px solid #E4E4E0', fontSize: 13 }}
-              />
+              <input className="gx-input" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Child's name" style={{ fontWeight: 600 }} />
+              <input className="gx-input" value={editDevice} onChange={e => setEditDevice(e.target.value)} placeholder="Device name (e.g. Emma's iPhone)" />
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={saveEdit} style={{
-                  padding: '6px 14px', borderRadius: 6, background: '#1D9E75',
-                  color: '#fff', border: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer'
-                }}>Save</button>
-                <button onClick={() => setEditing(false)} style={{
-                  padding: '6px 14px', borderRadius: 6, background: '#fff',
-                  color: '#6B6B68', border: '0.5px solid #E4E4E0', fontSize: 13, cursor: 'pointer'
-                }}>Cancel</button>
+                <button onClick={saveEdit} className="gx-btn" style={{ padding: '7px 16px', fontSize: 13 }}>Save</button>
+                <button onClick={() => setEditing(false)} className="gx-btn-ghost" style={{ padding: '7px 16px', fontSize: 13 }}>Cancel</button>
               </div>
             </div>
           ) : (
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <h1 style={{ fontSize: 22, fontWeight: 600, color: '#1A1A18', margin: 0 }}>{profileName}</h1>
-                <button onClick={() => { setEditName(profileName); setEditDevice(deviceName); setEditing(true) }} style={{
-                  background: 'none', border: 'none', color: '#C0C0BB', cursor: 'pointer', fontSize: 13, padding: '2px 6px'
-                }}>✏️</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <h1 style={{ fontFamily: FONT_D, fontSize: 26, fontWeight: 600 }}>{name}</h1>
+                <button onClick={() => { setEditName(name); setEditDevice(device); setEditing(true) }} style={{ color: '#C9CFC9', fontSize: 15, padding: '2px 6px' }}>✏️</button>
               </div>
-              {deviceName ? (
-                <div style={{ fontSize: 13, color: '#6B6B68', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  📱 {deviceName}
-                  <span style={{
-                    fontSize: 11, padding: '2px 8px', borderRadius: 20,
-                    background: bgColor, color: textColor, fontWeight: 500
-                  }}>Protected</span>
-                </div>
-              ) : (
-                <div style={{ fontSize: 13, color: '#C0C0BB', marginTop: 3 }}>
-                  No device added yet —{' '}
-                  <button onClick={() => navigate('/app/profile/' + profileId + '/install')}
-                    style={{ background: 'none', border: 'none', color: '#1D9E75', cursor: 'pointer', fontSize: 13, padding: 0 }}>
-                    install on a device
-                  </button>
-                </div>
-              )}
+              {device
+                ? <div style={{ fontSize: 13.5, color: '#5B655F', marginTop: 3, display: 'flex', alignItems: 'center', gap: 8 }}>📱 {device} <span className="gx-pill" style={{ background: tint, color: tintText }}>Protected</span></div>
+                : <div style={{ fontSize: 13.5, color: '#9AA39D', marginTop: 3 }}>No device yet — <button onClick={() => navigate(`/app/profile/${profileId}/install`)} style={{ color: '#1F9D6B', fontWeight: 600 }}>install on a device</button></div>}
             </div>
           )}
         </div>
-        <button onClick={() => navigate('/app/profile/' + profileId + '/install')} style={{
-          padding: '8px 16px', borderRadius: 8, background: '#1D9E75',
-          color: '#fff', border: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer', flexShrink: 0
-        }}>
-          + Add device
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={togglePause} disabled={pausing} className={paused ? 'gx-btn' : 'gx-btn-ghost'} style={{ padding: '10px 18px', fontSize: 14, ...(paused ? { background: '#E2A03F', boxShadow: 'none' } : {}) }}>
+            {pausing ? '…' : paused ? '▶ Resume internet' : '⏸ Pause internet'}
+          </button>
+          <button onClick={() => navigate(`/app/profile/${profileId}/install`)} className="gx-btn" style={{ padding: '10px 18px', fontSize: 14 }}>＋ Add device</button>
+        </div>
       </div>
 
+      {paused && (
+        <div className="gx-card" style={{ background: '#FBF1DD', borderColor: '#E8CE93', padding: '12px 18px', marginBottom: 14 }}>
+          <p style={{ fontSize: 14, color: '#9A6B12' }}>⏸ Internet is paused for this device. Nothing will load until you resume.</p>
+        </div>
+      )}
       {error && (
-        <div style={{ ...card, background: '#FCEBEB', border: '0.5px solid #F0A0A0', marginBottom: 12 }}>
-          <p style={{ color: '#A32D2D', fontSize: 13 }}>⚠️ {error}</p>
+        <div className="gx-card" style={{ background: '#FBEAE8', borderColor: '#E9B5AF', padding: '12px 18px', marginBottom: 14 }}>
+          <p style={{ fontSize: 14, color: '#C24238' }}>⚠️ {error}</p>
         </div>
       )}
 
-      <div style={{ display: 'flex', borderBottom: '0.5px solid #E4E4E0', marginBottom: 20, overflowX: 'auto' }}>
-        <button style={tabStyle('filters')} onClick={() => setTab('filters')}>Categories</button>
-        <button style={tabStyle('services')} onClick={() => setTab('services')}>
-          Apps & sites {blockedServiceCount > 0 && (
-            <span style={{ marginLeft: 5, background: '#1D9E75', color: '#fff', fontSize: 10, padding: '1px 6px', borderRadius: 10 }}>
-              {blockedServiceCount}
-            </span>
-          )}
-        </button>
-        <button style={tabStyle('deny')} onClick={() => setTab('deny')}>Block list</button>
-        <button style={tabStyle('allow')} onClick={() => setTab('allow')}>Allow list</button>
-        <button style={tabStyle('activity')} onClick={() => { setTab('activity'); loadLogs() }}>Activity</button>
+      {/* Tabs */}
+      <div className="gx-scroll-x" style={{ display: 'flex', gap: 4, borderBottom: '1px solid #EAE5DA', marginBottom: 20 }}>
+        {tab_('filters','Categories')}
+        {tab_('services','Apps & sites', blockedSvc)}
+        {tab_('schedule','Time limits')}
+        {tab_('deny','Block list')}
+        {tab_('allow','Allow list')}
+        {tab_('activity','Activity')}
       </div>
 
-      {loading ? <p style={{ color: '#9B9B97', fontSize: 13 }}>Loading…</p> : (
+      {loading ? <p style={{ color: '#9AA39D' }}>Loading…</p> : (
         <>
           {tab === 'filters' && (
-            <div style={card}>
-              <h2 style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Content categories</h2>
-              <p style={{ fontSize: 12, color: '#9B9B97', marginBottom: 16 }}>Block entire categories with one toggle.</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {CATEGORIES.map(cat => {
-                  const isOn = !!categories[cat.id]
+            <Card>
+              <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 4 }}>Content categories</h2>
+              <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 16 }}>Block whole categories with one tap.</p>
+              <div className="gx-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {CATEGORIES.map(c => {
+                  const on = !!categories[c.id]
                   return (
-                    <div key={cat.id} style={{
-                      display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 8,
-                      border: '0.5px solid ' + (isOn ? '#5DCAA5' : '#E4E4E0'),
-                      background: isOn ? '#E1F5EE' : '#fff', transition: 'all 0.15s'
-                    }}>
-                      <span style={{ fontSize: 20 }}>{cat.icon}</span>
+                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px', borderRadius: 14, border: '1px solid ' + (on ? '#A9DCC2' : '#EAE5DA'), background: on ? '#E8F5EE' : '#fff', transition: 'all 0.15s' }}>
+                      <span style={{ fontSize: 21 }}>{c.icon}</span>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500 }}>{cat.label}</div>
-                        <div style={{ fontSize: 11, color: '#9B9B97' }}>{cat.desc}</div>
+                        <div style={{ fontSize: 14, fontWeight: 600 }}>{c.label}</div>
+                        <div style={{ fontSize: 12, color: '#9AA39D' }}>{c.desc}</div>
                       </div>
-                      <Toggle isOn={isOn} id={cat.id} onToggle={() => toggleCategory(cat.id)} />
+                      <Toggle on={on} busy={saving === c.id} onClick={() => toggleCat(c.id)} />
                     </div>
                   )
                 })}
               </div>
-            </div>
+            </Card>
           )}
 
           {tab === 'services' && (
-            <div>
-              <div style={{ ...card, paddingBottom: 12 }}>
-                <h2 style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Apps & sites</h2>
-                <p style={{ fontSize: 12, color: '#9B9B97', marginBottom: 12 }}>Block specific apps and websites by name.</p>
-                <input value={serviceSearch} onChange={e => setServiceSearch(e.target.value)}
-                  placeholder="Search…" style={{
-                    width: '100%', padding: '8px 12px', borderRadius: 8,
-                    border: '0.5px solid #E4E4E0', fontSize: 13, boxSizing: 'border-box'
-                  }} />
-              </div>
-              {filteredServices.map(group => (
-                <div key={group.group} style={{ ...card, marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, fontWeight: 500, color: '#9B9B97', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    {group.group}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    {group.items.map(svc => {
-                      const isOn = !!services[svc.id]
+            <>
+              <Card style={{ marginBottom: 12 }}>
+                <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 4 }}>Apps & sites</h2>
+                <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 12 }}>Block specific apps by name — more precise than categories.</p>
+                <input className="gx-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search apps & sites…" />
+              </Card>
+              {filtered.map(g => (
+                <Card key={g.group} style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#9AA39D', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{g.group}</div>
+                  <div className="gx-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {g.items.map(([id, label, icon]) => {
+                      const on = !!services[id]
                       return (
-                        <div key={svc.id} style={{
-                          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8,
-                          border: '0.5px solid ' + (isOn ? '#F0A0A0' : '#E4E4E0'),
-                          background: isOn ? '#FCEBEB' : '#fff', transition: 'all 0.15s'
-                        }}>
-                          <span style={{ fontSize: 18 }}>{svc.icon}</span>
-                          <span style={{ flex: 1, fontSize: 13, fontWeight: isOn ? 500 : 400 }}>{svc.label}</span>
-                          <Toggle isOn={isOn} id={svc.id} onToggle={() => toggleService(svc.id)} />
+                        <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', borderRadius: 12, border: '1px solid ' + (on ? '#E9B5AF' : '#EAE5DA'), background: on ? '#FBEAE8' : '#fff', transition: 'all 0.15s' }}>
+                          <span style={{ fontSize: 18 }}>{icon}</span>
+                          <span style={{ flex: 1, fontSize: 14, fontWeight: on ? 600 : 500 }}>{label}</span>
+                          <Toggle on={on} busy={saving === id} onClick={() => toggleSvc(id)} />
                         </div>
                       )
                     })}
                   </div>
-                </div>
+                </Card>
               ))}
-            </div>
+            </>
+          )}
+
+          {tab === 'schedule' && (
+            <Card>
+              <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 4 }}>Time limits & downtime</h2>
+              <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 18 }}>Block the internet during set hours — perfect for bedtime, homework or school.</p>
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#5B655F', marginBottom: 8 }}>Apply on these days</div>
+                <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                  {DAYS.map(([label, code]) => {
+                    const on = schedDays.includes(code)
+                    return (
+                      <button key={code} onClick={() => setSchedDays(on ? schedDays.filter(d => d !== code) : [...schedDays, code])}
+                        style={{ padding: '9px 14px', borderRadius: 999, fontSize: 13, fontWeight: 600,
+                          border: '1px solid ' + (on ? '#1F9D6B' : '#EAE5DA'),
+                          background: on ? '#1F9D6B' : '#fff', color: on ? '#fff' : '#5B655F' }}>{label}</button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#5B655F', marginBottom: 6 }}>Block from</div>
+                  <input type="time" className="gx-input" value={schedFrom} onChange={e => setSchedFrom(e.target.value)} style={{ width: 140 }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#5B655F', marginBottom: 6 }}>Until</div>
+                  <input type="time" className="gx-input" value={schedTo} onChange={e => setSchedTo(e.target.value)} style={{ width: 140 }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <button onClick={saveScheduleNow} disabled={schedSaving || !schedDays.length} className="gx-btn" style={{ opacity: (schedSaving || !schedDays.length) ? 0.6 : 1 }}>
+                  {schedSaving ? 'Saving…' : 'Save schedule'}
+                </button>
+                {schedSaved && <span style={{ fontSize: 13, color: '#1F9D6B', fontWeight: 600 }}>✓ Saved</span>}
+                {!schedDays.length && <span style={{ fontSize: 13, color: '#9AA39D' }}>Pick at least one day</span>}
+              </div>
+              <div style={{ marginTop: 18, padding: '12px 16px', background: '#F7F4ED', borderRadius: 12, fontSize: 13, color: '#5B655F' }}>
+                💡 Common setups: bedtime 9pm–7am every day, or homework time 4pm–6pm on weekdays.
+              </div>
+            </Card>
           )}
 
           {tab === 'deny' && (
-            <div style={card}>
-              <h2 style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Block list</h2>
-              <p style={{ fontSize: 12, color: '#9B9B97', marginBottom: 16 }}>Specific domains always blocked regardless of other settings.</p>
-              {denylist.length === 0 && <p style={{ fontSize: 13, color: '#C0C0BB', marginBottom: 12 }}>No sites added yet.</p>}
-              {denylist.map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid #F0F0EE' }}>
-                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: '#FCEBEB', color: '#A32D2D', fontWeight: 500 }}>Blocked</span>
-                  <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}>{item.id}</span>
+            <Card>
+              <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 4 }}>Block list</h2>
+              <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 16 }}>Specific sites always blocked.</p>
+              {!denylist.length && <p style={{ fontSize: 14, color: '#C9CFC9', marginBottom: 12 }}>Nothing here yet.</p>}
+              {denylist.map((it, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #F2EEE6' }}>
+                  <span className="gx-pill" style={{ background: '#FBEAE8', color: '#C24238' }}>Blocked</span>
+                  <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 13 }}>{it.id}</span>
                 </div>
               ))}
               <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                <input value={denyInput} onChange={e => setDenyInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addDomain('deny')}
-                  placeholder="e.g. example.com"
-                  style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: '0.5px solid #E4E4E0', fontSize: 13 }} />
-                <button onClick={() => addDomain('deny')} style={{
-                  padding: '8px 16px', borderRadius: 6, background: '#A32D2D',
-                  color: '#fff', border: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer'
-                }}>Block site</button>
+                <input className="gx-input" value={denyInput} onChange={e => setDenyInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addDomain('deny')} placeholder="e.g. example.com" />
+                <button onClick={() => addDomain('deny')} className="gx-btn" style={{ background: '#C24238', boxShadow: 'none', whiteSpace: 'nowrap' }}>Block</button>
               </div>
-            </div>
+            </Card>
           )}
 
           {tab === 'allow' && (
-            <div style={card}>
-              <h2 style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Allow list</h2>
-              <p style={{ fontSize: 12, color: '#9B9B97', marginBottom: 16 }}>Sites always accessible even if a category blocks them.</p>
-              {allowlist.length === 0 && <p style={{ fontSize: 13, color: '#C0C0BB', marginBottom: 12 }}>No sites added yet.</p>}
-              {allowlist.map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid #F0F0EE' }}>
-                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: '#E1F5EE', color: '#0F6E56', fontWeight: 500 }}>Allowed</span>
-                  <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}>{item.id}</span>
+            <Card>
+              <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 4 }}>Allow list</h2>
+              <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 16 }}>Always-allowed sites, even if a category blocks them.</p>
+              {!allowlist.length && <p style={{ fontSize: 14, color: '#C9CFC9', marginBottom: 12 }}>Nothing here yet.</p>}
+              {allowlist.map((it, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #F2EEE6' }}>
+                  <span className="gx-pill" style={{ background: '#E8F5EE', color: '#0E5E42' }}>Allowed</span>
+                  <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 13 }}>{it.id}</span>
                 </div>
               ))}
               <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                <input value={allowInput} onChange={e => setAllowInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addDomain('allow')}
-                  placeholder="e.g. bbc.co.uk"
-                  style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: '0.5px solid #E4E4E0', fontSize: 13 }} />
-                <button onClick={() => addDomain('allow')} style={{
-                  padding: '8px 16px', borderRadius: 6, background: '#1D9E75',
-                  color: '#fff', border: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer'
-                }}>Allow site</button>
+                <input className="gx-input" value={allowInput} onChange={e => setAllowInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addDomain('allow')} placeholder="e.g. bbc.co.uk" />
+                <button onClick={() => addDomain('allow')} className="gx-btn" style={{ whiteSpace: 'nowrap' }}>Allow</button>
               </div>
-            </div>
+            </Card>
           )}
 
           {tab === 'activity' && (
-            <div style={card}>
-              <h2 style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Activity log</h2>
-              <p style={{ fontSize: 12, color: '#9B9B97', marginBottom: 16 }}>Recent DNS requests from devices using this profile.</p>
-              {logs.length === 0
-                ? <p style={{ fontSize: 13, color: '#C0C0BB' }}>No recent activity.</p>
-                : logs.slice(0, 50).map((log, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '0.5px solid #F0F0EE', fontSize: 12 }}>
-                    <span style={{
-                      fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 500,
-                      background: log.blocked ? '#FCEBEB' : '#E1F5EE',
-                      color: log.blocked ? '#A32D2D' : '#0F6E56'
-                    }}>{log.blocked ? 'Blocked' : 'Allowed'}</span>
+            <>
+              {topBlocked.length > 0 && (
+                <Card>
+                  <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 14 }}>Most blocked</h2>
+                  {topBlocked.slice(0, 6).map((d, i) => {
+                    const max = topBlocked[0]?.queries || 1
+                    const pct = Math.round(((d.queries || 0) / max) * 100)
+                    return (
+                      <div key={i} style={{ marginBottom: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                          <span style={{ fontFamily: 'monospace' }}>{d.domain || d.name}</span>
+                          <span style={{ color: '#9AA39D' }}>{d.queries || 0}</span>
+                        </div>
+                        <div style={{ height: 6, background: '#F2EEE6', borderRadius: 999 }}>
+                          <div style={{ height: '100%', width: pct + '%', background: '#C24238', borderRadius: 999 }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </Card>
+              )}
+              <Card>
+                <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 4 }}>Recent activity</h2>
+                <p style={{ fontSize: 13, color: '#9AA39D', marginBottom: 16 }}>Latest requests from this device.</p>
+                {!logs.length ? <p style={{ fontSize: 14, color: '#C9CFC9' }}>No recent activity.</p> : logs.slice(0, 50).map((log, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #F2EEE6', fontSize: 13 }}>
+                    <span className="gx-pill" style={{ background: log.blocked ? '#FBEAE8' : '#E8F5EE', color: log.blocked ? '#C24238' : '#0E5E42' }}>{log.blocked ? 'Blocked' : 'Allowed'}</span>
                     <span style={{ flex: 1, fontFamily: 'monospace' }}>{log.domain || log.name}</span>
-                    <span style={{ color: '#9B9B97' }}>{log.device?.name || deviceName || '—'}</span>
+                    <span style={{ color: '#9AA39D', fontSize: 12 }}>{device || '—'}</span>
                   </div>
-                ))
-              }
-            </div>
+                ))}
+              </Card>
+            </>
           )}
         </>
       )}

@@ -1,52 +1,49 @@
 import React from 'react'
+import { useAuth } from '../lib/AuthContext'
+import { useNavigate } from 'react-router-dom'
 
-const card = {
-  background: '#fff', border: '0.5px solid #E4E4E0',
-  borderRadius: 12, padding: '20px 24px', marginBottom: 12
+const FONT_D = "'Fraunces', Georgia, serif"
+
+function Card({ children }) {
+  return <div className="gx-card" style={{ padding: 24, marginBottom: 14 }}>{children}</div>
 }
 
 export default function SettingsPage() {
+  const auth = useAuth()
+  const navigate = useNavigate()
   return (
-    <div>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 500, marginBottom: 4 }}>Settings</h1>
-        <p style={{ color: '#6B6B68', fontSize: 13 }}>Manage your Guardly account.</p>
-      </div>
+    <div className="fade-up">
+      <h1 style={{ fontFamily: FONT_D, fontSize: 28, fontWeight: 600, marginBottom: 4 }}>Settings</h1>
+      <p style={{ color: '#5B655F', fontSize: 15, marginBottom: 22 }}>Manage your Guardly account.</p>
 
-      <div style={card}>
-        <h2 style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>Account</h2>
-        <p style={{ fontSize: 13, color: '#6B6B68', marginBottom: 16 }}>
-          Your Guardly subscription keeps all your family profiles active and protected.
-          Contact us at <a href="mailto:support@guardly.app" style={{ color: '#1D9E75' }}>support@guardly.app</a> for
-          any account changes.
-        </p>
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
-          padding: '6px 14px', borderRadius: 20,
-          background: '#E1F5EE', fontSize: 12, fontWeight: 500, color: '#0F6E56'
-        }}>
-          ✓ Active
-        </div>
-      </div>
+      <Card>
+        <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 8 }}>Account</h2>
+        {auth?.user ? (
+          <p style={{ fontSize: 14.5, color: '#5B655F', marginBottom: 16 }}>Signed in as <strong>{auth.user.email}</strong></p>
+        ) : (
+          <p style={{ fontSize: 14.5, color: '#5B655F', marginBottom: 16 }}>You're using Guardly in preview mode.</p>
+        )}
+        <span className="gx-pill" style={{ background: '#E8F5EE', color: '#0E5E42' }}>✓ Active</span>
+      </Card>
 
-      <div style={card}>
-        <h2 style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>How Guardly works</h2>
-        <p style={{ fontSize: 13, color: '#6B6B68', lineHeight: 1.7 }}>
-          Guardly works by installing a lightweight security profile on your child's device.
-          This profile quietly filters DNS requests — the tiny lookups every app makes before
-          loading any content. Blocked content simply never loads, on any network, anywhere in the world.
-          No app is running in the background and nothing slows the device down.
+      <Card>
+        <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 8 }}>How Guardly works</h2>
+        <p style={{ fontSize: 14.5, color: '#5B655F', lineHeight: 1.7 }}>
+          Guardly installs a lightweight security profile on each child's device. It quietly filters the
+          tiny lookups every app makes before loading content, so blocked material never appears — on any
+          network, anywhere. Nothing runs in the background and nothing slows the device down.
         </p>
-      </div>
+      </Card>
 
-      <div style={card}>
-        <h2 style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>About Guardly</h2>
-        <p style={{ fontSize: 13, color: '#6B6B68' }}>
-          Guardly makes it simple for parents to keep their children safe online —
-          on any device, at home or away. Filters apply instantly across all protected devices.
-        </p>
-        <p style={{ fontSize: 12, color: '#9B9B97', marginTop: 8 }}>Version 0.1.0</p>
-      </div>
+      <Card>
+        <h2 style={{ fontFamily: FONT_D, fontSize: 18, marginBottom: 8 }}>Support</h2>
+        <p style={{ fontSize: 14.5, color: '#5B655F', marginBottom: 16 }}>Questions or trouble? We're happy to help.</p>
+        <a href="mailto:support@guardly.app" className="gx-btn-ghost" style={{ display: 'inline-flex' }}>Email support@guardly.app</a>
+      </Card>
+
+      {auth?.user && (
+        <button onClick={() => { auth.signOut(); navigate('/') }} className="gx-btn-ghost" style={{ marginTop: 4 }}>Sign out</button>
+      )}
     </div>
   )
 }
